@@ -209,14 +209,14 @@
       </div>
 
       <div class="grid grid-cols-1 sm:grid-cols-12 gap-3.5 items-end">
-        <div class="sm:col-span-5">
+        <div class="sm:col-span-4">
           <label for="autoShopId" class="block font-mono-ui text-xs font-semibold tracking-widest text-neutral-500 uppercase mb-1.5">
             SHOP ID
           </label>
           <input id="autoShopId" type="text" value="20080837" inputmode="numeric" class="brutal-input" placeholder="e.g. 20080837" />
         </div>
 
-        <div class="sm:col-span-7">
+        <div class="sm:col-span-5">
           <label for="autoMonth" class="block font-mono-ui text-xs font-semibold tracking-widest text-neutral-500 uppercase mb-1.5">
             MONTH
           </label>
@@ -236,19 +236,11 @@
           </select>
         </div>
 
-        <div class="sm:col-span-4">
+        <div class="sm:col-span-3">
           <label for="autoYear" class="block font-mono-ui text-xs font-semibold tracking-widest text-neutral-500 uppercase mb-1.5">
             YEAR
           </label>
           <input id="autoYear" type="number" value="2026" min="2020" max="2035" class="brutal-input" />
-        </div>
-
-        <div class="sm:col-span-8">
-          <button id="btnAutoFetch" type="button"
-            class="w-full font-mono-ui text-sm font-bold tracking-widest uppercase py-3 px-4 bg-[#181816] text-white border-2 border-[#181816] hover:bg-neutral-800 active:translate-y-px transition cursor-pointer inline-flex items-center justify-center gap-2">
-            <span aria-hidden="true">&#128260;</span>
-            <span id="autoFetchLabel">FETCH &amp; COMPARE</span>
-          </button>
         </div>
       </div>
 
@@ -285,87 +277,12 @@
         </div>
       </div>
 
-      <!-- Inline Fetch Status / Helper Notice -->
-      <div id="autoFetchNotice" class="hidden mt-4 p-3.5 border-2 border-amber-700 bg-amber-50 text-amber-950 text-xs sm:text-sm leading-relaxed">
-      </div>
-    </section>
-
-    <!-- Divider -->
-    <div class="flex items-center gap-3 my-4 no-print">
-      <div class="flex-1 h-px bg-neutral-400"></div>
-      <span class="font-mono-ui text-xs text-neutral-600 tracking-wide whitespace-nowrap">OR &mdash; manual XLS upload fallback</span>
-      <div class="flex-1 h-px bg-neutral-400"></div>
-    </div>
-
-    <!-- Card 3: Manual Fallback Upload Transaction XLS -->
-    <section id="manualUploadSection" class="brutal-card p-4 sm:p-5 mb-5 no-print">
-      <div class="pb-2.5 mb-4 border-b border-neutral-300">
-        <h2 class="font-mono-ui text-sm sm:text-base font-bold tracking-widest uppercase flex items-center gap-2 leading-snug">
-          <span aria-hidden="true">&#128229;</span>
-          <span>MANUAL FALLBACK &mdash; UPLOAD TRANSACTION XLS</span>
-        </h2>
-      </div>
-
-      <div class="grid grid-cols-3 gap-2.5 sm:gap-3.5 mb-4">
-        <div>
-          <label for="manualShopId" class="block font-mono-ui text-[11px] sm:text-xs font-semibold tracking-widest text-neutral-500 uppercase mb-1.5">
-            SHOP ID
-          </label>
-          <input id="manualShopId" type="text" value="20080837" inputmode="numeric" class="brutal-input text-sm sm:text-base px-2 sm:px-3" />
-        </div>
-
-        <div>
-          <label for="manualMonth" class="block font-mono-ui text-[11px] sm:text-xs font-semibold tracking-widest text-neutral-500 uppercase mb-1.5">
-            MONTH
-          </label>
-          <select id="manualMonth" class="brutal-input text-sm sm:text-base px-2 sm:px-3 bg-white cursor-pointer">
-            <option value="January">January</option>
-            <option value="February">February</option>
-            <option value="March">March</option>
-            <option value="April">April</option>
-            <option value="May">May</option>
-            <option value="June">June</option>
-            <option value="July">July</option>
-            <option value="August">August</option>
-            <option value="September">September</option>
-            <option value="October">October</option>
-            <option value="November" selected>November</option>
-            <option value="December">December</option>
-          </select>
-        </div>
-
-        <div>
-          <label for="manualYear" class="block font-mono-ui text-[11px] sm:text-xs font-semibold tracking-widest text-neutral-500 uppercase mb-1.5">
-            YEAR
-          </label>
-          <input id="manualYear" type="number" value="2026" min="2020" max="2035" class="brutal-input text-sm sm:text-base px-2 sm:px-3" />
-        </div>
-      </div>
-
-      <!-- Fixed Dropzone (no text overflow on mobile!) -->
-      <div id="txDropzone" role="button" tabindex="0"
-        class="dropzone-box p-5 sm:p-7 text-center cursor-pointer select-none overflow-hidden">
-        <div class="text-3xl mb-2" aria-hidden="true">&#128229;</div>
-        <p class="font-semibold text-sm sm:text-base text-[#181816]">
-          Upload Transaction XLS from smartpds.up.gov.in
-        </p>
-        <p id="expectedFilenameHint" class="font-mono-ui text-[11px] sm:text-xs text-neutral-500 mt-1.5 break-all leading-relaxed px-1">
-          Transaction_Details_for_FPS_Id__20080837_April_2026.xls
-        </p>
-        <p class="text-[11px] text-neutral-500 mt-2">
-          Supports .xls (including HTML-table .xls), .xlsx &amp; .csv &bull; Tap or drop file here
-        </p>
-        <input id="txFileInput" type="file" accept=".xls,.xlsx,.csv,.htm,.html" class="hidden" />
-      </div>
-
-      <div class="mt-3 flex flex-wrap items-center justify-between gap-2">
-        <button id="btnOpenPortalDirect" type="button"
-          class="font-mono-ui text-xs font-bold uppercase px-3 py-2 bg-[#181816] text-white border-2 border-[#181816] hover:bg-neutral-800 cursor-pointer inline-flex items-center gap-1.5">
-          <span>&#127760; Copy Shop ID &amp; Open FPS_Trans_Int &nearr;</span>
-        </button>
-        <button id="btnOpenPasteModal" type="button"
-          class="font-mono-ui text-xs font-bold uppercase px-3 py-2 bg-white text-[#181816] border-2 border-[#181816] hover:bg-neutral-100 cursor-pointer inline-flex items-center gap-1.5">
-          <span>&#128203; Paste Table Directly</span>
+      <!-- Fetch & Compare Button Below Captcha -->
+      <div class="mt-4">
+        <button id="btnAutoFetch" type="button"
+          class="w-full font-mono-ui text-sm font-bold tracking-widest uppercase py-3.5 px-4 bg-[#181816] text-white border-2 border-[#181816] hover:bg-neutral-800 active:translate-y-px transition cursor-pointer inline-flex items-center justify-center gap-2">
+          <span aria-hidden="true">&#128260;</span>
+          <span id="autoFetchLabel">FETCH &amp; COMPARE</span>
         </button>
       </div>
 
@@ -373,6 +290,10 @@
       <div id="txLoadedStrip" class="hidden mt-3 p-3 bg-neutral-100 border border-neutral-400 font-mono-ui text-xs flex flex-wrap items-center justify-between gap-2">
         <span id="txLoadedInfo" class="break-all"></span>
         <button id="btnClearTx" type="button" class="text-red-700 font-bold underline cursor-pointer">Clear Tx</button>
+      </div>
+
+      <!-- Inline Fetch Status / Helper Notice -->
+      <div id="autoFetchNotice" class="hidden mt-4 p-3.5 border-2 border-amber-700 bg-amber-50 text-amber-950 text-xs sm:text-sm leading-relaxed">
       </div>
     </section>
 
@@ -630,13 +551,6 @@
         captchaInput: document.getElementById('captchaInput'),
         captchaModeNote: document.getElementById('captchaModeNote'),
 
-        manualUploadSection: document.getElementById('manualUploadSection'),
-        manualShopId: document.getElementById('manualShopId'),
-        manualMonth: document.getElementById('manualMonth'),
-        manualYear: document.getElementById('manualYear'),
-        txDropzone: document.getElementById('txDropzone'),
-        expectedFilenameHint: document.getElementById('expectedFilenameHint'),
-        txFileInput: document.getElementById('txFileInput'),
         txLoadedStrip: document.getElementById('txLoadedStrip'),
         txLoadedInfo: document.getElementById('txLoadedInfo'),
         btnClearTx: document.getElementById('btnClearTx'),
@@ -671,8 +585,6 @@
         printDateLine: document.getElementById('printDateLine'),
         printSummaryLine: document.getElementById('printSummaryLine'),
 
-        btnOpenPortalDirect: document.getElementById('btnOpenPortalDirect'),
-        btnOpenPasteModal: document.getElementById('btnOpenPasteModal'),
         pasteModal: document.getElementById('pasteModal'),
         btnClosePasteModal: document.getElementById('btnClosePasteModal'),
         btnCancelPaste: document.getElementById('btnCancelPaste'),
@@ -764,28 +676,11 @@
         document.body.removeChild(ta);
       }
 
-      // Sync Shop ID / Month / Year across both cards
-      function syncParams(source) {
-        if (source === 'auto') {
-          state.shopId = el.autoShopId.value.trim();
-          state.month = el.autoMonth.value;
-          state.year = el.autoYear.value.trim();
-          el.manualShopId.value = state.shopId;
-          el.manualMonth.value = state.month;
-          el.manualYear.value = state.year;
-        } else {
-          state.shopId = el.manualShopId.value.trim();
-          state.month = el.manualMonth.value;
-          state.year = el.manualYear.value.trim();
-          el.autoShopId.value = state.shopId;
-          el.autoMonth.value = state.month;
-          el.autoYear.value = state.year;
-        }
-        const shop = state.shopId || 'SHOPID';
-        const mon = state.month || 'MONTH';
-        const yr = state.year || 'YEAR';
-        el.expectedFilenameHint.textContent =
-          'Transaction_Details_for_FPS_Id__' + shop + '_' + mon + '_' + yr + '.xls';
+      // Sync Shop ID / Month / Year
+      function syncParams() {
+        state.shopId = el.autoShopId.value.trim();
+        state.month = el.autoMonth.value;
+        state.year = el.autoYear.value.trim();
       }
 
       // Normalize Ration Card Number cleanly
@@ -799,8 +694,8 @@
         }
         // Remove trailing .0 from float-formatted integers
         s = s.replace(/\.0+$/, '');
-        // Keep alphanumeric digits only for comparison
-        const digits = s.replace(/[^0-9A-Za-z]/g, '');
+        // Ration Card numbers are purely numeric (rejects header text like jkkudkMZla0)
+        const digits = s.replace(/[^0-9]/g, '');
         return digits;
       }
 
@@ -961,17 +856,19 @@
             if (foundCard === -1 && (
               h.includes('ration') || h.includes('rc no') || h.includes('rc_no') || h === 'rcno' ||
               h.includes('card no') || h.includes('card_no') || h === 'cardno' || h === 'rc' ||
-              h.includes('src') || h.includes('राशन') || h.includes('कार्ड संख्या')
+              h.includes('src') || h.includes('राशन') || h.includes('कार्ड संख्या') ||
+              h.includes('jkkudkmz')
             )) {
               foundCard = c;
             } else if (foundFather === -1 && (
               h.includes('father') || h.includes('husband') || h.includes('f/h') ||
-              h.includes('पिता') || h.includes('पति')
+              h.includes('पिता') || h.includes('पति') || h.includes('firk') || h.includes('ifr')
             )) {
               foundFather = c;
             } else if (foundName === -1 && (
               h.includes('name') || h.includes('head') || h.includes('holder') ||
-              h.includes('beneficiary') || h.includes('नाम') || h.includes('मुखिया')
+              h.includes('beneficiary') || h.includes('नाम') || h.includes('मुखिया') ||
+              h.includes('dkmz') || h.includes('uke')
             )) {
               foundName = c;
             } else if (foundType === -1 && (
@@ -1026,6 +923,7 @@
           if (bestCol !== -1) {
             colMap.card = bestCol;
             colMap.name = bestCol + 1;
+            colMap.father = bestCol + 2;
             headerIdx = -1;
           }
         }
@@ -1040,7 +938,7 @@
           if (!row || row.length === 0) continue;
           const rawCard = row[colMap.card];
           const cardNo = normalizeCardNo(rawCard);
-          if (!cardNo || cardNo.length < 6) continue;
+          if (!cardNo || cardNo.length < 8 || cardNo.length > 16) continue;
           // Skip total/header repeat rows
           const rowJoined = row.join(' ').toLowerCase();
           if (rowJoined.includes('grand total') || cardNo.toLowerCase() === 'total') continue;
@@ -1430,7 +1328,7 @@
           '<div class="flex flex-wrap gap-2 mt-2.5">' +
             '<button id="btnTryDemoCaptcha" type="button" class="font-mono-ui text-xs font-bold uppercase px-3 py-1.5 bg-[#181816] text-white cursor-pointer">Try Demo Captcha</button>' +
             '<button id="btnCopyAndOpenPortal" type="button" class="font-mono-ui text-xs font-bold uppercase px-3 py-1.5 bg-white text-[#181816] border-2 border-[#181816] cursor-pointer">Copy Shop ID &amp; Open Portal &nearr;</button>' +
-            '<button id="btnJumpToManual" type="button" class="font-mono-ui text-xs font-bold uppercase px-3 py-1.5 bg-white text-[#181816] border-2 border-[#181816] cursor-pointer">Upload XLS</button>' +
+            
             '<button id="btnNoticePaste" type="button" class="font-mono-ui text-xs font-bold uppercase px-3 py-1.5 bg-white text-[#181816] border-2 border-[#181816] cursor-pointer">Paste Table</button>' +
           '</div>';
 
@@ -1438,13 +1336,7 @@
         if (demoCapBtn) demoCapBtn.addEventListener('click', renderDemoCaptcha);
         const openBtn = document.getElementById('btnCopyAndOpenPortal');
         if (openBtn) openBtn.addEventListener('click', openSmartPdsPortal);
-        const jumpBtn = document.getElementById('btnJumpToManual');
-        if (jumpBtn) {
-          jumpBtn.addEventListener('click', function () {
-            el.manualUploadSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            el.txFileInput.click();
-          });
-        }
+
         const noticePasteBtn = document.getElementById('btnNoticePaste');
         if (noticePasteBtn) {
           noticePasteBtn.addEventListener('click', function () {
@@ -1709,50 +1601,6 @@
       el.autoShopId.addEventListener('input', function () { syncParams('auto'); });
       el.autoMonth.addEventListener('change', function () { syncParams('auto'); });
       el.autoYear.addEventListener('input', function () { syncParams('auto'); });
-      el.manualShopId.addEventListener('input', function () { syncParams('manual'); });
-      el.manualMonth.addEventListener('change', function () { syncParams('manual'); });
-      el.manualYear.addEventListener('input', function () { syncParams('manual'); });
-
-      el.btnAutoFetch.addEventListener('click', handleAutoFetch);
-      el.btnLoadCaptcha.addEventListener('click', loadLiveCaptcha);
-
-      // Manual Dropzone
-      el.txDropzone.addEventListener('click', function () {
-        el.txFileInput.value = '';
-        el.txFileInput.click();
-      });
-
-      el.txDropzone.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          el.txFileInput.value = '';
-          el.txFileInput.click();
-        }
-      });
-
-      el.txDropzone.addEventListener('dragover', function (e) {
-        e.preventDefault();
-        el.txDropzone.classList.add('drag-over');
-      });
-
-      el.txDropzone.addEventListener('dragleave', function () {
-        el.txDropzone.classList.remove('drag-over');
-      });
-
-      el.txDropzone.addEventListener('drop', function (e) {
-        e.preventDefault();
-        el.txDropzone.classList.remove('drag-over');
-        if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) {
-          handleTxFile(e.dataTransfer.files[0]);
-        }
-      });
-
-      el.txFileInput.addEventListener('change', function (e) {
-        if (e.target.files && e.target.files[0]) {
-          handleTxFile(e.target.files[0]);
-        }
-      });
-
       el.btnClearTx.addEventListener('click', function () {
         state.transactions = null;
         state.comparison = null;
@@ -1850,11 +1698,6 @@
         }
       }
 
-      el.btnOpenPortalDirect.addEventListener('click', openSmartPdsPortal);
-      el.btnOpenPasteModal.addEventListener('click', function () {
-        el.pasteModal.classList.remove('hidden');
-        el.pasteTableInput.focus();
-      });
       el.btnClosePasteModal.addEventListener('click', function () {
         el.pasteModal.classList.add('hidden');
       });
