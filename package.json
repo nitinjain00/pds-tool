@@ -1,0 +1,8 @@
+{
+  "name": "pds-ration-card-tool-netlify",
+  "version": "1.0.0",
+  "description": "PDS Ration Card Comparison Tool with Netlify Function proxy for smartpds.up.gov.in in-app CAPTCHA",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

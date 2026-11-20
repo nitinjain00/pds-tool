@@ -1,0 +1,1873 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PDS राशन कार्ड टूल — smartpds.up.gov.in</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    :root {
+      --bg-paper: #f6f4ee;
+      --ink: #181816;
+      --muted: #66635b;
+      --green-bg: #ebf5ec;
+      --green-border: #256f2c;
+      --green-text: #1b5e20;
+      --red-solid: #991b1b;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      background-color: var(--bg-paper);
+      color: var(--ink);
+      font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans Devanagari", sans-serif;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .font-mono-ui {
+      font-family: ui-monospace, "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+
+    .brutal-card {
+      background: #ffffff;
+      border: 2px solid var(--ink);
+    }
+
+    .master-saved-box {
+      background: var(--green-bg);
+      border: 2px solid var(--green-border);
+    }
+
+    .master-empty-box {
+      background: #fffbeb;
+      border: 2px solid #b45309;
+    }
+
+    .brutal-input {
+      width: 100%;
+      background: #ffffff;
+      border: 2px solid var(--ink);
+      padding: 0.65rem 0.75rem;
+      font-family: ui-monospace, "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--ink);
+      outline: none;
+      transition: background-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .brutal-input:focus {
+      background: #fefce8;
+      box-shadow: 0 0 0 2px rgba(24, 24, 22, 0.18);
+    }
+
+    .dropzone-box {
+      border: 2px dashed var(--ink);
+      background: #faf9f5;
+      transition: background-color 0.15s ease, border-color 0.15s ease;
+    }
+
+    .dropzone-box.drag-over {
+      background: #ebf5ec;
+      border-color: var(--green-border);
+    }
+
+    .toast-enter {
+      animation: slideUp 0.2s ease-out;
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* A4 Print Styles */
+    @media print {
+      @page {
+        size: A4 portrait;
+        margin: 10mm;
+      }
+      body {
+        background: #ffffff !important;
+        color: #000000 !important;
+        font-size: 10pt;
+      }
+      .no-print {
+        display: none !important;
+      }
+      .print-only {
+        display: block !important;
+      }
+      .print-container {
+        max-width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+      table.print-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 9pt;
+      }
+      table.print-table thead {
+        display: table-header-group;
+      }
+      table.print-table tr {
+        page-break-inside: avoid;
+      }
+      table.print-table th,
+      table.print-table td {
+        border: 1px solid #222 !important;
+        padding: 4px 6px !important;
+        color: #000 !important;
+        background: #fff !important;
+      }
+      table.print-table th {
+        background: #efefef !important;
+        font-weight: 700;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen pb-10">
+
+  <!-- Main App Container -->
+  <div class="max-w-3xl mx-auto px-3 sm:px-5 pt-3 sm:pt-5 print-container">
+
+    <!-- Top Header Banner (Hidden in Print) -->
+    <header class="bg-[#181816] text-white p-4 sm:p-5 mb-4 no-print">
+      <div class="flex items-center gap-4">
+        <!-- Wheat Badge SVG -->
+        <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-white border-4 border-[#ea580c] flex items-center justify-center shrink-0 shadow">
+          <svg viewBox="0 0 64 64" class="w-11 h-11 sm:w-13 sm:h-13" fill="none" aria-hidden="true">
+            <path d="M32 54V22" stroke="#4d7c0f" stroke-width="3.2" stroke-linecap="round"/>
+            <path d="M32 48C23 47 17 41 16 32C24 33 30 39 32 48Z" fill="#65a30d"/>
+            <path d="M32 45C40 43 46 37 48 29C40 30 34 36 32 45Z" fill="#84cc16"/>
+            <ellipse cx="29" cy="27" rx="3.4" ry="6" transform="rotate(-24 29 27)" fill="#eab308"/>
+            <ellipse cx="35" cy="24" rx="3.4" ry="6" transform="rotate(24 35 24)" fill="#f59e0b"/>
+            <ellipse cx="29" cy="19" rx="3.2" ry="5.5" transform="rotate(-24 29 19)" fill="#facc15"/>
+            <ellipse cx="35" cy="16" rx="3.2" ry="5.5" transform="rotate(24 35 16)" fill="#eab308"/>
+            <ellipse cx="32" cy="12" rx="2.8" ry="5" fill="#f59e0b"/>
+          </svg>
+        </div>
+
+        <div class="min-w-0 flex-1">
+          <h1 class="text-xl sm:text-2xl font-bold tracking-tight leading-tight text-white">
+            PDS राशन कार्ड टूल
+          </h1>
+          <p class="font-mono-ui text-xs sm:text-sm text-neutral-300 mt-1 leading-snug">
+            Auto-fetch &bull; Master Saved in Browser &bull; Excel Export &bull; A4 Ready
+          </p>
+          <div class="mt-2.5 inline-flex items-center gap-1.5 px-2.5 py-1 border border-neutral-600 bg-neutral-900/70 rounded text-xs sm:text-sm font-mono-ui text-amber-400 max-w-full">
+            <span aria-hidden="true">&#9733;</span>
+            <span class="truncate">Mukesh Kumar Jain (Pakharpur)</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Card 1: Master File Status -->
+    <section id="masterStatusCard" class="master-empty-box p-4 mb-4 no-print">
+      <div id="masterStatusText" class="font-mono-ui text-sm sm:text-base font-medium leading-relaxed break-words">
+        No master list saved yet — upload your Master Ration Card Excel/CSV file or load sample data to test.
+      </div>
+      <div class="mt-3.5 flex flex-wrap items-center gap-2.5">
+        <button id="btnUploadMaster" type="button"
+          class="font-mono-ui text-xs sm:text-sm font-bold tracking-wider uppercase px-4 py-2.5 bg-white text-[#181816] border-2 border-[#181816] hover:bg-neutral-100 active:translate-y-px transition cursor-pointer inline-flex items-center gap-2">
+          <span aria-hidden="true">&#128193;</span>
+          <span>UPLOAD / CHANGE MASTER</span>
+        </button>
+
+        <button id="btnLoadDemo" type="button"
+          class="font-mono-ui text-xs sm:text-sm font-bold tracking-wider uppercase px-3.5 py-2.5 bg-[#181816] text-white border-2 border-[#181816] hover:bg-neutral-800 active:translate-y-px transition cursor-pointer inline-flex items-center gap-1.5">
+          <span aria-hidden="true">&#9889;</span>
+          <span>DEMO DATA</span>
+        </button>
+
+        <button id="btnClearMaster" type="button"
+          class="font-mono-ui text-xs sm:text-sm font-bold tracking-wider uppercase px-4 py-2.5 bg-[#991b1b] text-white border-2 border-[#991b1b] hover:bg-[#7f1d1d] active:translate-y-px transition cursor-pointer inline-flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed">
+          <span aria-hidden="true">&#128465;</span>
+          <span>CLEAR</span>
+        </button>
+
+        <input id="masterFileInput" type="file" accept=".xlsx,.xls,.csv,.htm,.html" class="hidden" />
+      </div>
+    </section>
+
+    <!-- Card 2: Fetch & Compare (Automatic + Guided Portal Fetch) -->
+    <section class="brutal-card p-4 sm:p-5 mb-4 no-print">
+      <div class="pb-2.5 mb-4 border-b border-neutral-300 flex items-center justify-between gap-2">
+        <h2 class="font-mono-ui text-sm sm:text-base font-bold tracking-widest uppercase flex items-center gap-2 leading-snug">
+          <span aria-hidden="true">&#128260;</span>
+          <span>FETCH &amp; COMPARE &mdash; FULLY AUTOMATIC</span>
+        </h2>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-12 gap-3.5 items-end">
+        <div class="sm:col-span-5">
+          <label for="autoShopId" class="block font-mono-ui text-xs font-semibold tracking-widest text-neutral-500 uppercase mb-1.5">
+            SHOP ID
+          </label>
+          <input id="autoShopId" type="text" value="20080837" inputmode="numeric" class="brutal-input" placeholder="e.g. 20080837" />
+        </div>
+
+        <div class="sm:col-span-7">
+          <label for="autoMonth" class="block font-mono-ui text-xs font-semibold tracking-widest text-neutral-500 uppercase mb-1.5">
+            MONTH
+          </label>
+          <select id="autoMonth" class="brutal-input bg-white cursor-pointer">
+            <option value="January">January</option>
+            <option value="February">February</option>
+            <option value="March">March</option>
+            <option value="April">April</option>
+            <option value="May">May</option>
+            <option value="June">June</option>
+            <option value="July">July</option>
+            <option value="August">August</option>
+            <option value="September">September</option>
+            <option value="October">October</option>
+            <option value="November" selected>November</option>
+            <option value="December">December</option>
+          </select>
+        </div>
+
+        <div class="sm:col-span-4">
+          <label for="autoYear" class="block font-mono-ui text-xs font-semibold tracking-widest text-neutral-500 uppercase mb-1.5">
+            YEAR
+          </label>
+          <input id="autoYear" type="number" value="2026" min="2020" max="2035" class="brutal-input" />
+        </div>
+
+        <div class="sm:col-span-8">
+          <button id="btnAutoFetch" type="button"
+            class="w-full font-mono-ui text-sm font-bold tracking-widest uppercase py-3 px-4 bg-[#181816] text-white border-2 border-[#181816] hover:bg-neutral-800 active:translate-y-px transition cursor-pointer inline-flex items-center justify-center gap-2">
+            <span aria-hidden="true">&#128260;</span>
+            <span id="autoFetchLabel">FETCH &amp; COMPARE</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- In-App Captcha Box (Powered by Netlify Function /.netlify/functions/pds-proxy) -->
+      <div id="captchaBox" class="mt-4 p-3.5 border-2 border-[#181816] bg-[#faf9f5]">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-2.5">
+          <span class="font-mono-ui text-xs font-bold uppercase tracking-wider text-[#181816]">
+            &#128274; SmartPDS Captcha (In-App)
+          </span>
+          <div class="flex items-center gap-2">
+            <button id="btnLoadCaptcha" type="button"
+              class="font-mono-ui text-[11px] font-bold uppercase px-2.5 py-1 bg-white border border-[#181816] hover:bg-neutral-100 cursor-pointer">
+              &#8635; Load / Refresh Captcha
+            </button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-center">
+          <div class="sm:col-span-5 flex items-center justify-center min-h-[52px] bg-white border-2 border-[#181816] px-2 py-1 overflow-hidden">
+            <img id="captchaImg" alt="SmartPDS Captcha" class="hidden max-h-12 w-auto select-none" />
+            <canvas id="demoCaptchaCanvas" width="160" height="44" class="hidden"></canvas>
+            <span id="captchaPlaceholder" class="font-mono-ui text-[11px] text-neutral-500 text-center">
+              Click "Load / Refresh Captcha"
+            </span>
+          </div>
+          <div class="sm:col-span-7">
+            <input id="captchaInput" type="text" autocomplete="off" placeholder="Enter Captcha text"
+              class="brutal-input text-sm py-2.5" />
+          </div>
+        </div>
+
+        <div id="captchaModeNote" class="mt-2 font-mono-ui text-[11px] text-neutral-600">
+          Connects to <code class="font-bold">/.netlify/functions/pds-proxy</code> when deployed on Netlify.
+        </div>
+      </div>
+
+      <!-- Inline Fetch Status / Helper Notice -->
+      <div id="autoFetchNotice" class="hidden mt-4 p-3.5 border-2 border-amber-700 bg-amber-50 text-amber-950 text-xs sm:text-sm leading-relaxed">
+      </div>
+    </section>
+
+    <!-- Divider -->
+    <div class="flex items-center gap-3 my-4 no-print">
+      <div class="flex-1 h-px bg-neutral-400"></div>
+      <span class="font-mono-ui text-xs text-neutral-600 tracking-wide whitespace-nowrap">OR &mdash; manual XLS upload fallback</span>
+      <div class="flex-1 h-px bg-neutral-400"></div>
+    </div>
+
+    <!-- Card 3: Manual Fallback Upload Transaction XLS -->
+    <section id="manualUploadSection" class="brutal-card p-4 sm:p-5 mb-5 no-print">
+      <div class="pb-2.5 mb-4 border-b border-neutral-300">
+        <h2 class="font-mono-ui text-sm sm:text-base font-bold tracking-widest uppercase flex items-center gap-2 leading-snug">
+          <span aria-hidden="true">&#128229;</span>
+          <span>MANUAL FALLBACK &mdash; UPLOAD TRANSACTION XLS</span>
+        </h2>
+      </div>
+
+      <div class="grid grid-cols-3 gap-2.5 sm:gap-3.5 mb-4">
+        <div>
+          <label for="manualShopId" class="block font-mono-ui text-[11px] sm:text-xs font-semibold tracking-widest text-neutral-500 uppercase mb-1.5">
+            SHOP ID
+          </label>
+          <input id="manualShopId" type="text" value="20080837" inputmode="numeric" class="brutal-input text-sm sm:text-base px-2 sm:px-3" />
+        </div>
+
+        <div>
+          <label for="manualMonth" class="block font-mono-ui text-[11px] sm:text-xs font-semibold tracking-widest text-neutral-500 uppercase mb-1.5">
+            MONTH
+          </label>
+          <select id="manualMonth" class="brutal-input text-sm sm:text-base px-2 sm:px-3 bg-white cursor-pointer">
+            <option value="January">January</option>
+            <option value="February">February</option>
+            <option value="March">March</option>
+            <option value="April">April</option>
+            <option value="May">May</option>
+            <option value="June">June</option>
+            <option value="July">July</option>
+            <option value="August">August</option>
+            <option value="September">September</option>
+            <option value="October">October</option>
+            <option value="November" selected>November</option>
+            <option value="December">December</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="manualYear" class="block font-mono-ui text-[11px] sm:text-xs font-semibold tracking-widest text-neutral-500 uppercase mb-1.5">
+            YEAR
+          </label>
+          <input id="manualYear" type="number" value="2026" min="2020" max="2035" class="brutal-input text-sm sm:text-base px-2 sm:px-3" />
+        </div>
+      </div>
+
+      <!-- Fixed Dropzone (no text overflow on mobile!) -->
+      <div id="txDropzone" role="button" tabindex="0"
+        class="dropzone-box p-5 sm:p-7 text-center cursor-pointer select-none overflow-hidden">
+        <div class="text-3xl mb-2" aria-hidden="true">&#128229;</div>
+        <p class="font-semibold text-sm sm:text-base text-[#181816]">
+          Upload Transaction XLS from smartpds.up.gov.in
+        </p>
+        <p id="expectedFilenameHint" class="font-mono-ui text-[11px] sm:text-xs text-neutral-500 mt-1.5 break-all leading-relaxed px-1">
+          Transaction_Details_for_FPS_Id__20080837_April_2026.xls
+        </p>
+        <p class="text-[11px] text-neutral-500 mt-2">
+          Supports .xls (including HTML-table .xls), .xlsx &amp; .csv &bull; Tap or drop file here
+        </p>
+        <input id="txFileInput" type="file" accept=".xls,.xlsx,.csv,.htm,.html" class="hidden" />
+      </div>
+
+      <div class="mt-3 flex flex-wrap items-center justify-between gap-2">
+        <button id="btnOpenPortalDirect" type="button"
+          class="font-mono-ui text-xs font-bold uppercase px-3 py-2 bg-[#181816] text-white border-2 border-[#181816] hover:bg-neutral-800 cursor-pointer inline-flex items-center gap-1.5">
+          <span>&#127760; Copy Shop ID &amp; Open FPS_Trans_Int &nearr;</span>
+        </button>
+        <button id="btnOpenPasteModal" type="button"
+          class="font-mono-ui text-xs font-bold uppercase px-3 py-2 bg-white text-[#181816] border-2 border-[#181816] hover:bg-neutral-100 cursor-pointer inline-flex items-center gap-1.5">
+          <span>&#128203; Paste Table Directly</span>
+        </button>
+      </div>
+
+      <!-- Loaded transaction status strip -->
+      <div id="txLoadedStrip" class="hidden mt-3 p-3 bg-neutral-100 border border-neutral-400 font-mono-ui text-xs flex flex-wrap items-center justify-between gap-2">
+        <span id="txLoadedInfo" class="break-all"></span>
+        <button id="btnClearTx" type="button" class="text-red-700 font-bold underline cursor-pointer">Clear Tx</button>
+      </div>
+    </section>
+
+    <!-- Results & Comparison Dashboard -->
+    <section id="resultsSection" class="hidden mb-6">
+
+      <!-- Print-only Official Register Header -->
+      <div class="hidden print-only mb-3 pb-2 border-b-2 border-black">
+        <div class="flex justify-between items-start">
+          <div>
+            <h1 class="text-lg font-bold">PDS राशन कार्ड वितरण तुलना रिपोर्ट (Comparison Report)</h1>
+            <p id="printMetaLine" class="text-xs mt-0.5"></p>
+          </div>
+          <div class="text-right text-xs">
+            <div>Mukesh Kumar Jain (Pakharpur)</div>
+            <div id="printDateLine"></div>
+          </div>
+        </div>
+        <div id="printSummaryLine" class="mt-2 text-xs font-bold"></div>
+      </div>
+
+      <!-- Summary KPI Strip (Screen) -->
+      <div class="brutal-card p-4 sm:p-5 mb-4 no-print">
+        <div class="flex flex-wrap items-center justify-between gap-2 pb-3 mb-3.5 border-b border-neutral-300">
+          <div>
+            <h2 class="font-mono-ui text-sm sm:text-base font-bold tracking-wider uppercase">
+              &#128202; COMPARISON SUMMARY
+            </h2>
+            <p id="summarySubtext" class="font-mono-ui text-xs text-neutral-600 mt-0.5"></p>
+          </div>
+
+          <div class="flex flex-wrap gap-2">
+            <button id="btnExportExcel" type="button"
+              class="font-mono-ui text-xs font-bold uppercase px-3 py-2 bg-[#166534] text-white border-2 border-[#166534] hover:bg-[#14532d] cursor-pointer">
+              &#128196; EXCEL EXPORT
+            </button>
+            <button id="btnExportCsv" type="button"
+              class="font-mono-ui text-xs font-bold uppercase px-3 py-2 bg-white text-[#181816] border-2 border-[#181816] hover:bg-neutral-100 cursor-pointer">
+              CSV
+            </button>
+            <button id="btnPrintA4" type="button"
+              class="font-mono-ui text-xs font-bold uppercase px-3 py-2 bg-[#181816] text-white border-2 border-[#181816] hover:bg-neutral-800 cursor-pointer">
+              &#128424; PRINT A4
+            </button>
+          </div>
+        </div>
+
+        <!-- 4 KPI Tiles -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-3.5">
+          <div class="p-3 border-2 border-[#181816] bg-[#faf9f5]">
+            <div class="font-mono-ui text-[11px] uppercase text-neutral-500">Master Cards</div>
+            <div id="kpiTotal" class="font-mono-ui text-2xl font-bold mt-0.5">0</div>
+          </div>
+          <div class="p-3 border-2 border-[#256f2c] bg-[#ebf5ec]">
+            <div class="font-mono-ui text-[11px] uppercase text-[#1b5e20]">Distributed (वितरित)</div>
+            <div id="kpiDone" class="font-mono-ui text-2xl font-bold text-[#1b5e20] mt-0.5">0</div>
+          </div>
+          <div class="p-3 border-2 border-[#991b1b] bg-[#fef2f2]">
+            <div class="font-mono-ui text-[11px] uppercase text-[#991b1b]">Pending (बकाया)</div>
+            <div id="kpiPending" class="font-mono-ui text-2xl font-bold text-[#991b1b] mt-0.5">0</div>
+          </div>
+          <div class="p-3 border-2 border-[#1d4ed8] bg-[#eff6ff]">
+            <div class="font-mono-ui text-[11px] uppercase text-[#1e40af]">Portability / Extra</div>
+            <div id="kpiExtra" class="font-mono-ui text-2xl font-bold text-[#1e40af] mt-0.5">0</div>
+          </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div>
+          <div class="flex justify-between font-mono-ui text-xs font-semibold mb-1">
+            <span>Distribution Progress</span>
+            <span id="kpiPercent">0%</span>
+          </div>
+          <div class="w-full h-3 bg-neutral-200 border border-[#181816] overflow-hidden">
+            <div id="kpiProgressBar" class="h-full bg-[#256f2c] transition-all duration-300" style="width: 0%"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filter Tabs + Search + Table -->
+      <div class="brutal-card p-3 sm:p-4">
+        <!-- Tabs & Filters (Hidden in Print) -->
+        <div class="no-print space-y-3 mb-3.5">
+          <div class="flex flex-wrap gap-1.5" role="tablist">
+            <button data-tab="pending" type="button"
+              class="tab-btn font-mono-ui text-xs font-bold uppercase px-3 py-2 border-2 border-[#181816] cursor-pointer">
+              Pending (<span id="tabCountPending">0</span>)
+            </button>
+            <button data-tab="distributed" type="button"
+              class="tab-btn font-mono-ui text-xs font-bold uppercase px-3 py-2 border-2 border-[#181816] cursor-pointer">
+              Distributed (<span id="tabCountDistributed">0</span>)
+            </button>
+            <button data-tab="all" type="button"
+              class="tab-btn font-mono-ui text-xs font-bold uppercase px-3 py-2 border-2 border-[#181816] cursor-pointer">
+              All Master (<span id="tabCountAll">0</span>)
+            </button>
+            <button data-tab="extra" type="button"
+              class="tab-btn font-mono-ui text-xs font-bold uppercase px-3 py-2 border-2 border-[#181816] cursor-pointer">
+              Extra / Portability (<span id="tabCountExtra">0</span>)
+            </button>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-12 gap-2">
+            <div class="sm:col-span-6">
+              <input id="searchInput" type="search" placeholder="Search card no, name, father name..."
+                class="w-full border-2 border-[#181816] px-3 py-2 text-sm font-mono-ui focus:bg-[#fefce8] outline-none" />
+            </div>
+            <div class="sm:col-span-3">
+              <select id="typeFilter" class="w-full border-2 border-[#181816] px-2.5 py-2 text-sm font-mono-ui bg-white cursor-pointer">
+                <option value="ALL">All Types</option>
+                <option value="PHH">PHH Only</option>
+                <option value="AAY">AAY Only</option>
+              </select>
+            </div>
+            <div class="sm:col-span-3">
+              <select id="sortSelect" class="w-full border-2 border-[#181816] px-2.5 py-2 text-sm font-mono-ui bg-white cursor-pointer">
+                <option value="sr">Sort: Original Order</option>
+                <option value="name">Sort: Name (A-Z)</option>
+                <option value="card">Sort: Card No</option>
+                <option value="units">Sort: Units (High-Low)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Responsive Table -->
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse print-table text-xs sm:text-sm">
+            <thead>
+              <tr class="bg-[#181816] text-white font-mono-ui text-[11px] sm:text-xs uppercase">
+                <th class="py-2 px-2 border border-[#181816] w-10">#</th>
+                <th class="py-2 px-2 border border-[#181816]">Ration Card No</th>
+                <th class="py-2 px-2 border border-[#181816]">Card Holder</th>
+                <th class="py-2 px-2 border border-[#181816] hidden sm:table-cell">Father / Husband</th>
+                <th class="py-2 px-2 border border-[#181816] text-center">Type</th>
+                <th class="py-2 px-2 border border-[#181816] text-center">Units</th>
+                <th class="py-2 px-2 border border-[#181816] text-center">Status</th>
+              </tr>
+            </thead>
+            <tbody id="resultsTbody" class="divide-y divide-neutral-200">
+            </tbody>
+          </table>
+        </div>
+
+        <div id="tableEmptyState" class="hidden py-8 text-center font-mono-ui text-sm text-neutral-500">
+          No matching ration cards found for the current filter.
+        </div>
+
+        <div id="tableFooterInfo" class="mt-2.5 font-mono-ui text-xs text-neutral-500 flex justify-between items-center no-print">
+          <span id="showingCountText"></span>
+          <span>Tap a card number to copy</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="pt-4 mt-6 border-t border-neutral-300 text-center font-mono-ui text-xs text-neutral-600 space-y-1 no-print">
+      <div>PDS Ration Tool &mdash; smartpds.up.gov.in</div>
+      <div class="text-[#181816] font-semibold">
+        &#9733; Made by Mukesh Kumar Jain (Pakharpur)
+      </div>
+    </footer>
+  </div>
+
+  <!-- In-page Confirmation Modal (No browser confirm()) -->
+  <div id="confirmModal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 no-print">
+    <div class="brutal-card max-w-sm w-full p-5 bg-white shadow-xl">
+      <h3 class="font-mono-ui text-base font-bold uppercase mb-2">Clear Saved Master?</h3>
+      <p class="text-sm text-neutral-700 mb-4">
+        This will remove the saved master ration card list from your browser storage. You can upload a new master file anytime.
+      </p>
+      <div class="flex justify-end gap-2">
+        <button id="btnCancelClear" type="button"
+          class="font-mono-ui text-xs font-bold uppercase px-3.5 py-2 border-2 border-[#181816] bg-white hover:bg-neutral-100 cursor-pointer">
+          Cancel
+        </button>
+        <button id="btnConfirmClear" type="button"
+          class="font-mono-ui text-xs font-bold uppercase px-3.5 py-2 border-2 border-[#991b1b] bg-[#991b1b] text-white hover:bg-[#7f1d1d] cursor-pointer">
+          Yes, Clear
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Paste Table Modal -->
+  <div id="pasteModal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 no-print">
+    <div class="brutal-card max-w-lg w-full p-5 bg-white shadow-xl">
+      <div class="flex items-center justify-between gap-2 mb-2">
+        <h3 class="font-mono-ui text-sm sm:text-base font-bold uppercase">Paste Transaction Table</h3>
+        <button id="btnClosePasteModal" type="button" class="font-mono-ui text-sm font-bold px-2 py-0.5 border border-[#181816] cursor-pointer">&times;</button>
+      </div>
+      <p class="text-xs sm:text-sm text-neutral-700 mb-3">
+        After solving the CAPTCHA on <strong>smartpds.up.gov.in/FPS_Trans_Int</strong>, select &amp; copy the transaction table (Ctrl+A / Ctrl+C) and paste it below:
+      </p>
+      <textarea id="pasteTableInput" rows="7" placeholder="Paste copied rows or tab-separated transaction data here..."
+        class="w-full border-2 border-[#181816] p-2.5 font-mono-ui text-xs focus:bg-[#fefce8] outline-none mb-3"></textarea>
+      <div class="flex justify-end gap-2">
+        <button id="btnCancelPaste" type="button"
+          class="font-mono-ui text-xs font-bold uppercase px-3.5 py-2 border-2 border-[#181816] bg-white hover:bg-neutral-100 cursor-pointer">
+          Cancel
+        </button>
+        <button id="btnParsePasted" type="button"
+          class="font-mono-ui text-xs font-bold uppercase px-3.5 py-2 border-2 border-[#181816] bg-[#181816] text-white hover:bg-neutral-800 cursor-pointer">
+          Compare Pasted Data
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toastContainer" class="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 pointer-events-none no-print"></div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      const STORAGE_KEY = 'pds_ration_master_v2';
+
+      // Application State
+      const state = {
+        master: null, // { fileName, savedAt, cards: [{ sr, cardNo, name, fatherName, cardType, units }] }
+        transactions: null, // { fileName, shopId, month, year, rows: [{ cardNo, name, cardType, units, txDate, wheat, rice }] }
+        comparison: null, // { pending, distributed, all, extra }
+        activeTab: 'pending',
+        searchQuery: '',
+        typeFilter: 'ALL',
+        sortBy: 'sr',
+        shopId: '20080837',
+        month: 'November',
+        year: '2026',
+        captchaSessionToken: '',
+        demoCaptchaCode: '',
+        isDemoCaptcha: false
+      };
+
+      // DOM Elements
+      const el = {
+        masterStatusCard: document.getElementById('masterStatusCard'),
+        masterStatusText: document.getElementById('masterStatusText'),
+        btnUploadMaster: document.getElementById('btnUploadMaster'),
+        btnLoadDemo: document.getElementById('btnLoadDemo'),
+        btnClearMaster: document.getElementById('btnClearMaster'),
+        masterFileInput: document.getElementById('masterFileInput'),
+
+        autoShopId: document.getElementById('autoShopId'),
+        autoMonth: document.getElementById('autoMonth'),
+        autoYear: document.getElementById('autoYear'),
+        btnAutoFetch: document.getElementById('btnAutoFetch'),
+        autoFetchLabel: document.getElementById('autoFetchLabel'),
+        autoFetchNotice: document.getElementById('autoFetchNotice'),
+        btnLoadCaptcha: document.getElementById('btnLoadCaptcha'),
+        captchaImg: document.getElementById('captchaImg'),
+        demoCaptchaCanvas: document.getElementById('demoCaptchaCanvas'),
+        captchaPlaceholder: document.getElementById('captchaPlaceholder'),
+        captchaInput: document.getElementById('captchaInput'),
+        captchaModeNote: document.getElementById('captchaModeNote'),
+
+        manualUploadSection: document.getElementById('manualUploadSection'),
+        manualShopId: document.getElementById('manualShopId'),
+        manualMonth: document.getElementById('manualMonth'),
+        manualYear: document.getElementById('manualYear'),
+        txDropzone: document.getElementById('txDropzone'),
+        expectedFilenameHint: document.getElementById('expectedFilenameHint'),
+        txFileInput: document.getElementById('txFileInput'),
+        txLoadedStrip: document.getElementById('txLoadedStrip'),
+        txLoadedInfo: document.getElementById('txLoadedInfo'),
+        btnClearTx: document.getElementById('btnClearTx'),
+
+        resultsSection: document.getElementById('resultsSection'),
+        summarySubtext: document.getElementById('summarySubtext'),
+        kpiTotal: document.getElementById('kpiTotal'),
+        kpiDone: document.getElementById('kpiDone'),
+        kpiPending: document.getElementById('kpiPending'),
+        kpiExtra: document.getElementById('kpiExtra'),
+        kpiPercent: document.getElementById('kpiPercent'),
+        kpiProgressBar: document.getElementById('kpiProgressBar'),
+
+        tabCountPending: document.getElementById('tabCountPending'),
+        tabCountDistributed: document.getElementById('tabCountDistributed'),
+        tabCountAll: document.getElementById('tabCountAll'),
+        tabCountExtra: document.getElementById('tabCountExtra'),
+        tabBtns: Array.from(document.querySelectorAll('.tab-btn')),
+
+        searchInput: document.getElementById('searchInput'),
+        typeFilter: document.getElementById('typeFilter'),
+        sortSelect: document.getElementById('sortSelect'),
+        resultsTbody: document.getElementById('resultsTbody'),
+        tableEmptyState: document.getElementById('tableEmptyState'),
+        showingCountText: document.getElementById('showingCountText'),
+
+        btnExportExcel: document.getElementById('btnExportExcel'),
+        btnExportCsv: document.getElementById('btnExportCsv'),
+        btnPrintA4: document.getElementById('btnPrintA4'),
+
+        printMetaLine: document.getElementById('printMetaLine'),
+        printDateLine: document.getElementById('printDateLine'),
+        printSummaryLine: document.getElementById('printSummaryLine'),
+
+        btnOpenPortalDirect: document.getElementById('btnOpenPortalDirect'),
+        btnOpenPasteModal: document.getElementById('btnOpenPasteModal'),
+        pasteModal: document.getElementById('pasteModal'),
+        btnClosePasteModal: document.getElementById('btnClosePasteModal'),
+        btnCancelPaste: document.getElementById('btnCancelPaste'),
+        btnParsePasted: document.getElementById('btnParsePasted'),
+        pasteTableInput: document.getElementById('pasteTableInput'),
+
+        confirmModal: document.getElementById('confirmModal'),
+        btnCancelClear: document.getElementById('btnCancelClear'),
+        btnConfirmClear: document.getElementById('btnConfirmClear'),
+        toastContainer: document.getElementById('toastContainer')
+      };
+
+      // Safe localStorage helpers
+      function saveMasterToStorage(masterObj) {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(masterObj));
+        } catch (err) {
+          showToast('Saved in memory (browser storage full or restricted).', 'warn');
+        }
+      }
+
+      function loadMasterFromStorage() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw) return null;
+          const parsed = JSON.parse(raw);
+          if (parsed && Array.isArray(parsed.cards) && parsed.cards.length > 0) {
+            return parsed;
+          }
+        } catch (err) {
+          return null;
+        }
+        return null;
+      }
+
+      function clearMasterFromStorage() {
+        try {
+          localStorage.removeItem(STORAGE_KEY);
+        } catch (err) {
+          // ignore
+        }
+      }
+
+      // Toast helper
+      function showToast(msg, type) {
+        const colors = type === 'error'
+          ? 'bg-[#991b1b] text-white border-[#7f1d1d]'
+          : type === 'warn'
+            ? 'bg-amber-700 text-white border-amber-900'
+            : 'bg-[#181816] text-white border-[#181816]';
+        const div = document.createElement('div');
+        div.className = 'toast-enter font-mono-ui text-xs px-4 py-2.5 border-2 shadow-lg max-w-[92vw] text-center ' + colors;
+        div.textContent = msg;
+        el.toastContainer.innerHTML = '';
+        el.toastContainer.appendChild(div);
+        setTimeout(function () {
+          if (div.parentNode === el.toastContainer) {
+            el.toastContainer.removeChild(div);
+          }
+        }, 3200);
+      }
+
+      // Copy helper with execCommand fallback
+      function copyText(text) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(function () {
+            showToast('Copied: ' + text);
+          }).catch(function () {
+            fallbackCopy(text);
+          });
+        } else {
+          fallbackCopy(text);
+        }
+      }
+
+      function fallbackCopy(text) {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try {
+          document.execCommand('copy');
+          showToast('Copied: ' + text);
+        } catch (err) {
+          showToast('Could not copy automatically.', 'warn');
+        }
+        document.body.removeChild(ta);
+      }
+
+      // Sync Shop ID / Month / Year across both cards
+      function syncParams(source) {
+        if (source === 'auto') {
+          state.shopId = el.autoShopId.value.trim();
+          state.month = el.autoMonth.value;
+          state.year = el.autoYear.value.trim();
+          el.manualShopId.value = state.shopId;
+          el.manualMonth.value = state.month;
+          el.manualYear.value = state.year;
+        } else {
+          state.shopId = el.manualShopId.value.trim();
+          state.month = el.manualMonth.value;
+          state.year = el.manualYear.value.trim();
+          el.autoShopId.value = state.shopId;
+          el.autoMonth.value = state.month;
+          el.autoYear.value = state.year;
+        }
+        const shop = state.shopId || 'SHOPID';
+        const mon = state.month || 'MONTH';
+        const yr = state.year || 'YEAR';
+        el.expectedFilenameHint.textContent =
+          'Transaction_Details_for_FPS_Id__' + shop + '_' + mon + '_' + yr + '.xls';
+      }
+
+      // Normalize Ration Card Number cleanly
+      function normalizeCardNo(val) {
+        if (val === null || val === undefined) return '';
+        let s = String(val).trim();
+        // Handle scientific notation from Excel numbers
+        if (/^\d+(\.\d+)?[eE]\+\d+$/.test(s)) {
+          const num = Number(s);
+          if (!isNaN(num)) s = num.toLocaleString('fullwide', { useGrouping: false });
+        }
+        // Remove trailing .0 from float-formatted integers
+        s = s.replace(/\.0+$/, '');
+        // Keep alphanumeric digits only for comparison
+        const digits = s.replace(/[^0-9A-Za-z]/g, '');
+        return digits;
+      }
+
+      function looksLikeCardNumber(val) {
+        const norm = normalizeCardNo(val);
+        // UP Ration Card numbers are typically 12 digits (sometimes 10-16 alphanumeric)
+        return /^\d{8,16}$/.test(norm);
+      }
+
+      function normalizeCardType(val) {
+        const s = String(val || '').trim().toUpperCase();
+        if (s.includes('AAY') || s.includes('ANTYODAYA') || s.includes('अन्त्योदय')) return 'AAY';
+        if (s.includes('PHH') || s.includes('PATRA') || s.includes('पात्र')) return 'PHH';
+        return s || 'PHH';
+      }
+
+      function formatToday() {
+        const d = new Date();
+        return d.getDate() + '/' + (d.getMonth() + 1) + '/' + d.getFullYear();
+      }
+
+      // Parse HTML-table .xls (very common on smartpds.up.gov.in!)
+      function parseHtmlTableText(text) {
+        const doc = new DOMParser().parseFromString(text, 'text/html');
+        const tables = Array.from(doc.querySelectorAll('table'));
+        if (!tables.length) return [];
+        // Pick the table with the most rows
+        tables.sort(function (a, b) {
+          return b.querySelectorAll('tr').length - a.querySelectorAll('tr').length;
+        });
+        const rows = [];
+        tables[0].querySelectorAll('tr').forEach(function (tr) {
+          const cells = Array.from(tr.querySelectorAll('th, td')).map(function (c) {
+            return (c.textContent || '').replace(/\s+/g, ' ').trim();
+          });
+          if (cells.some(function (x) { return x.length > 0; })) {
+            rows.push(cells);
+          }
+        });
+        return rows;
+      }
+
+      // Parse CSV text cleanly (handles quoted commas)
+      function parseCsvText(text) {
+        const rows = [];
+        const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i].trim();
+          if (!line) continue;
+          const cells = [];
+          let cur = '';
+          let inQuotes = false;
+          for (let j = 0; j < line.length; j++) {
+            const ch = line[j];
+            if (ch === '"') {
+              if (inQuotes && line[j + 1] === '"') {
+                cur += '"';
+                j++;
+              } else {
+                inQuotes = !inQuotes;
+              }
+            } else if (ch === ',' && !inQuotes) {
+              cells.push(cur.trim());
+              cur = '';
+            } else {
+              cur += ch;
+            }
+          }
+          cells.push(cur.trim());
+          rows.push(cells);
+        }
+        return rows;
+      }
+
+      // Unified file reader -> 2D array of strings
+      function readSpreadsheetFile(file) {
+        return new Promise(function (resolve, reject) {
+          const reader = new FileReader();
+          const nameLower = (file.name || '').toLowerCase();
+
+          reader.onerror = function () {
+            reject(new Error('Could not read file.'));
+          };
+
+          reader.onload = function (ev) {
+            try {
+              const buffer = ev.target.result;
+              // Sniff text prefix to detect HTML-disguised .xls or CSV
+              const bytes = new Uint8Array(buffer);
+              let preview = '';
+              const limit = Math.min(bytes.length, 4096);
+              for (let i = 0; i < limit; i++) {
+                preview += String.fromCharCode(bytes[i]);
+              }
+              const previewLower = preview.toLowerCase();
+
+              if (previewLower.includes('<table') || previewLower.includes('<html') || previewLower.includes('<!doctype')) {
+                const fullText = new TextDecoder('utf-8').decode(bytes);
+                const htmlRows = parseHtmlTableText(fullText);
+                if (htmlRows.length > 0) {
+                  resolve(htmlRows);
+                  return;
+                }
+              }
+
+              if (nameLower.endsWith('.csv')) {
+                const fullText = new TextDecoder('utf-8').decode(bytes);
+                resolve(parseCsvText(fullText));
+                return;
+              }
+
+              if (typeof window.XLSX !== 'undefined') {
+                const wb = window.XLSX.read(buffer, { type: 'array', raw: false });
+                const firstSheet = wb.Sheets[wb.SheetNames[0]];
+                const aoa = window.XLSX.utils.sheet_to_json(firstSheet, {
+                  header: 1,
+                  defval: '',
+                  raw: false
+                });
+                if (aoa && aoa.length > 0) {
+                  resolve(aoa);
+                  return;
+                }
+              }
+
+              // Fallback to CSV / text decode
+              const fallbackText = new TextDecoder('utf-8').decode(bytes);
+              resolve(parseCsvText(fallbackText));
+            } catch (err) {
+              reject(err);
+            }
+          };
+
+          reader.readAsArrayBuffer(file);
+        });
+      }
+
+      // Smart column detection for UP PDS Master & Transaction files
+      function extractCardsFromRows(rows, mode) {
+        if (!rows || rows.length === 0) return [];
+
+        let headerIdx = -1;
+        let colMap = { card: -1, name: -1, father: -1, type: -1, units: -1, date: -1 };
+
+        const scanLimit = Math.min(rows.length, 20);
+        for (let r = 0; r < scanLimit; r++) {
+          const row = rows[r].map(function (c) { return String(c || '').trim().toLowerCase(); });
+          let foundCard = -1;
+          let foundName = -1;
+          let foundFather = -1;
+          let foundType = -1;
+          let foundUnits = -1;
+          let foundDate = -1;
+
+          for (let c = 0; c < row.length; c++) {
+            const h = row[c];
+            if (!h) continue;
+            if (foundCard === -1 && (
+              h.includes('ration') || h.includes('rc no') || h.includes('rc_no') || h === 'rcno' ||
+              h.includes('card no') || h.includes('card_no') || h === 'cardno' || h === 'rc' ||
+              h.includes('src') || h.includes('राशन') || h.includes('कार्ड संख्या')
+            )) {
+              foundCard = c;
+            } else if (foundFather === -1 && (
+              h.includes('father') || h.includes('husband') || h.includes('f/h') ||
+              h.includes('पिता') || h.includes('पति')
+            )) {
+              foundFather = c;
+            } else if (foundName === -1 && (
+              h.includes('name') || h.includes('head') || h.includes('holder') ||
+              h.includes('beneficiary') || h.includes('नाम') || h.includes('मुखिया')
+            )) {
+              foundName = c;
+            } else if (foundType === -1 && (
+              h.includes('type') || h.includes('scheme') || h.includes('category') ||
+              h.includes('card_type') || h.includes('श्रेणी') || h.includes('प्रकार')
+            )) {
+              foundType = c;
+            } else if (foundUnits === -1 && (
+              h.includes('unit') || h.includes('member') || h.includes('यूनिट') || h.includes('सदस्य')
+            )) {
+              foundUnits = c;
+            } else if (foundDate === -1 && (
+              h.includes('date') || h.includes('time') || h.includes('दिनांक')
+            )) {
+              foundDate = c;
+            }
+          }
+
+          if (foundCard !== -1) {
+            headerIdx = r;
+            colMap = {
+              card: foundCard,
+              name: foundName,
+              father: foundFather,
+              type: foundType,
+              units: foundUnits,
+              date: foundDate
+            };
+            break;
+          }
+        }
+
+        // Fallback: if no header matched, auto-detect column containing 10-16 digit card numbers
+        if (colMap.card === -1) {
+          const colHits = {};
+          const checkRows = Math.min(rows.length, 40);
+          for (let r = 0; r < checkRows; r++) {
+            for (let c = 0; c < rows[r].length; c++) {
+              if (looksLikeCardNumber(rows[r][c])) {
+                colHits[c] = (colHits[c] || 0) + 1;
+              }
+            }
+          }
+          let bestCol = -1;
+          let bestCount = 0;
+          Object.keys(colHits).forEach(function (k) {
+            if (colHits[k] > bestCount) {
+              bestCount = colHits[k];
+              bestCol = Number(k);
+            }
+          });
+          if (bestCol !== -1) {
+            colMap.card = bestCol;
+            colMap.name = bestCol + 1;
+            headerIdx = -1;
+          }
+        }
+
+        if (colMap.card === -1) return [];
+
+        const seen = new Map();
+        let srCounter = 1;
+
+        for (let r = headerIdx + 1; r < rows.length; r++) {
+          const row = rows[r];
+          if (!row || row.length === 0) continue;
+          const rawCard = row[colMap.card];
+          const cardNo = normalizeCardNo(rawCard);
+          if (!cardNo || cardNo.length < 6) continue;
+          // Skip total/header repeat rows
+          const rowJoined = row.join(' ').toLowerCase();
+          if (rowJoined.includes('grand total') || cardNo.toLowerCase() === 'total') continue;
+
+          const name = colMap.name !== -1 && row[colMap.name] ? String(row[colMap.name]).trim() : '—';
+          const fatherName = colMap.father !== -1 && row[colMap.father] ? String(row[colMap.father]).trim() : '—';
+          const cardType = colMap.type !== -1 && row[colMap.type] ? normalizeCardType(row[colMap.type]) : 'PHH';
+          const unitsRaw = colMap.units !== -1 && row[colMap.units] ? parseInt(String(row[colMap.units]).replace(/[^\d]/g, ''), 10) : NaN;
+          const units = isNaN(unitsRaw) ? 0 : unitsRaw;
+          const txDate = colMap.date !== -1 && row[colMap.date] ? String(row[colMap.date]).trim() : '';
+
+          if (!seen.has(cardNo)) {
+            seen.set(cardNo, {
+              sr: srCounter++,
+              cardNo: cardNo,
+              name: name,
+              fatherName: fatherName,
+              cardType: cardType,
+              units: units,
+              txDate: txDate
+            });
+          } else if (mode === 'tx' && txDate) {
+            const existing = seen.get(cardNo);
+            existing.txDate = txDate;
+          }
+        }
+
+        return Array.from(seen.values());
+      }
+
+      // Run Comparison between Master and Transactions
+      function runComparison() {
+        if (!state.master || !state.master.cards.length) {
+          showToast('Please upload a Master Ration Card list first.', 'warn');
+          return;
+        }
+        if (!state.transactions || !state.transactions.rows.length) {
+          return;
+        }
+
+        const txMap = new Map();
+        state.transactions.rows.forEach(function (t) {
+          txMap.set(t.cardNo, t);
+        });
+
+        const masterSet = new Set();
+        const distributed = [];
+        const pending = [];
+        const all = [];
+
+        state.master.cards.forEach(function (card) {
+          masterSet.add(card.cardNo);
+          const match = txMap.get(card.cardNo);
+          const item = {
+            sr: card.sr,
+            cardNo: card.cardNo,
+            name: card.name,
+            fatherName: card.fatherName,
+            cardType: card.cardType,
+            units: card.units,
+            status: match ? 'distributed' : 'pending',
+            txDate: match ? (match.txDate || '') : ''
+          };
+          all.push(item);
+          if (match) {
+            distributed.push(item);
+          } else {
+            pending.push(item);
+          }
+        });
+
+        const extra = [];
+        let extraSr = 1;
+        state.transactions.rows.forEach(function (t) {
+          if (!masterSet.has(t.cardNo)) {
+            extra.push({
+              sr: extraSr++,
+              cardNo: t.cardNo,
+              name: t.name,
+              fatherName: t.fatherName || '—',
+              cardType: t.cardType,
+              units: t.units,
+              status: 'extra',
+              txDate: t.txDate || ''
+            });
+          }
+        });
+
+        state.comparison = { pending: pending, distributed: distributed, all: all, extra: extra };
+        renderResults();
+        el.resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+
+      // Render Master Card Banner
+      function renderMasterStatus() {
+        if (state.master && state.master.cards.length > 0) {
+          el.masterStatusCard.className = 'master-saved-box p-4 mb-4 no-print';
+          el.masterStatusText.className = 'font-mono-ui text-sm sm:text-base font-medium leading-relaxed break-words text-[#1b5e20]';
+          el.masterStatusText.textContent =
+            'Master saved \u2014 ' + state.master.cards.length + ' cards | ' +
+            state.master.fileName + ' | ' + state.master.savedAt;
+          el.btnClearMaster.disabled = false;
+        } else {
+          el.masterStatusCard.className = 'master-empty-box p-4 mb-4 no-print';
+          el.masterStatusText.className = 'font-mono-ui text-sm sm:text-base font-medium leading-relaxed break-words text-amber-950';
+          el.masterStatusText.textContent =
+            'No master list saved yet \u2014 upload your Master Excel/CSV file or click DEMO DATA to preview.';
+          el.btnClearMaster.disabled = true;
+        }
+      }
+
+      // Render Comparison Results & Table
+      function renderResults() {
+        if (!state.comparison) {
+          el.resultsSection.classList.add('hidden');
+          return;
+        }
+
+        el.resultsSection.classList.remove('hidden');
+
+        const total = state.comparison.all.length;
+        const done = state.comparison.distributed.length;
+        const pend = state.comparison.pending.length;
+        const ext = state.comparison.extra.length;
+        const pct = total > 0 ? Math.round((done / total) * 1000) / 10 : 0;
+
+        el.kpiTotal.textContent = String(total);
+        el.kpiDone.textContent = String(done);
+        el.kpiPending.textContent = String(pend);
+        el.kpiExtra.textContent = String(ext);
+        el.kpiPercent.textContent = pct + '%';
+        el.kpiProgressBar.style.width = Math.min(100, pct) + '%';
+
+        el.tabCountPending.textContent = String(pend);
+        el.tabCountDistributed.textContent = String(done);
+        el.tabCountAll.textContent = String(total);
+        el.tabCountExtra.textContent = String(ext);
+
+        el.summarySubtext.textContent =
+          'FPS ID: ' + state.shopId + ' | ' + state.month + ' ' + state.year +
+          ' | Tx File: ' + (state.transactions ? state.transactions.fileName : '');
+
+        // Update print header
+        const tabLabel = state.activeTab === 'pending' ? 'Pending List (बकाया)'
+          : state.activeTab === 'distributed' ? 'Distributed List (वितरित)'
+            : state.activeTab === 'extra' ? 'Portability / Extra Cards (बाहरी)'
+              : 'All Master Cards (सभी कार्ड)';
+        el.printMetaLine.textContent =
+          'FPS Shop ID: ' + state.shopId + ' | Period: ' + state.month + ' ' + state.year +
+          ' | View: ' + tabLabel;
+        el.printDateLine.textContent = 'Printed: ' + formatToday();
+        el.printSummaryLine.textContent =
+          'Total Master: ' + total + '  |  Distributed: ' + done + ' (' + pct + '%)  |  Pending: ' + pend + '  |  Extra/Portability: ' + ext;
+
+        // Style active tab
+        el.tabBtns.forEach(function (btn) {
+          const isActive = btn.getAttribute('data-tab') === state.activeTab;
+          if (isActive) {
+            btn.classList.add('bg-[#181816]', 'text-white');
+            btn.classList.remove('bg-white', 'text-[#181816]');
+          } else {
+            btn.classList.remove('bg-[#181816]', 'text-white');
+            btn.classList.add('bg-white', 'text-[#181816]');
+          }
+        });
+
+        // Filter & sort rows
+        const list = getFilteredRows();
+        el.resultsTbody.innerHTML = '';
+
+        if (list.length === 0) {
+          el.tableEmptyState.classList.remove('hidden');
+          el.showingCountText.textContent = 'Showing 0 records';
+          return;
+        }
+
+        el.tableEmptyState.classList.add('hidden');
+        el.showingCountText.textContent = 'Showing ' + list.length + ' of ' + state.comparison[state.activeTab].length + ' cards';
+
+        const frag = document.createDocumentFragment();
+        list.forEach(function (item, idx) {
+          const tr = document.createElement('tr');
+          tr.className = 'hover:bg-amber-50/60 transition-colors';
+
+          const badgeHtml = item.status === 'distributed'
+            ? '<span class="inline-block font-mono-ui text-[11px] font-bold px-2 py-0.5 bg-[#ebf5ec] text-[#1b5e20] border border-[#256f2c]">✓ DONE</span>'
+            : item.status === 'extra'
+              ? '<span class="inline-block font-mono-ui text-[11px] font-bold px-2 py-0.5 bg-[#eff6ff] text-[#1e40af] border border-[#1d4ed8]">⇄ EXTRA</span>'
+              : '<span class="inline-block font-mono-ui text-[11px] font-bold px-2 py-0.5 bg-[#fef2f2] text-[#991b1b] border border-[#991b1b]">✗ PENDING</span>';
+
+          const typeClass = item.cardType === 'AAY'
+            ? 'bg-amber-100 text-amber-900 border-amber-700'
+            : 'bg-neutral-100 text-neutral-800 border-neutral-500';
+
+          tr.innerHTML =
+            '<td class="py-2 px-2 font-mono-ui text-neutral-500">' + (idx + 1) + '</td>' +
+            '<td class="py-2 px-2 font-mono-ui font-semibold text-[#181816] cursor-pointer underline decoration-dotted copy-card-cell" data-card="' + escapeHtml(item.cardNo) + '">' + escapeHtml(item.cardNo) + '</td>' +
+            '<td class="py-2 px-2 font-medium">' + escapeHtml(item.name) +
+              (item.txDate ? '<div class="font-mono-ui text-[10px] text-neutral-500">' + escapeHtml(item.txDate) + '</div>' : '') +
+            '</td>' +
+            '<td class="py-2 px-2 text-neutral-600 hidden sm:table-cell">' + escapeHtml(item.fatherName) + '</td>' +
+            '<td class="py-2 px-2 text-center"><span class="inline-block font-mono-ui text-[11px] font-bold px-1.5 py-0.5 border ' + typeClass + '">' + escapeHtml(item.cardType) + '</span></td>' +
+            '<td class="py-2 px-2 text-center font-mono-ui">' + (item.units > 0 ? item.units : '—') + '</td>' +
+            '<td class="py-2 px-2 text-center">' + badgeHtml + '</td>';
+
+          frag.appendChild(tr);
+        });
+
+        el.resultsTbody.appendChild(frag);
+      }
+
+      function getFilteredRows() {
+        if (!state.comparison) return [];
+        const base = state.comparison[state.activeTab] || [];
+        const q = state.searchQuery.trim().toLowerCase();
+
+        const filtered = base.filter(function (item) {
+          if (state.typeFilter !== 'ALL' && item.cardType !== state.typeFilter) {
+            return false;
+          }
+          if (!q) return true;
+          return (
+            item.cardNo.toLowerCase().includes(q) ||
+            item.name.toLowerCase().includes(q) ||
+            item.fatherName.toLowerCase().includes(q)
+          );
+        });
+
+        const sorted = filtered.slice();
+        if (state.sortBy === 'name') {
+          sorted.sort(function (a, b) { return a.name.localeCompare(b.name); });
+        } else if (state.sortBy === 'card') {
+          sorted.sort(function (a, b) { return a.cardNo.localeCompare(b.cardNo); });
+        } else if (state.sortBy === 'units') {
+          sorted.sort(function (a, b) { return (b.units || 0) - (a.units || 0); });
+        } else {
+          sorted.sort(function (a, b) { return a.sr - b.sr; });
+        }
+        return sorted;
+      }
+
+      function escapeHtml(str) {
+        return String(str || '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;');
+      }
+
+      // Handle Master File Upload
+      async function handleMasterFile(file) {
+        if (!file) return;
+        try {
+          const rows = await readSpreadsheetFile(file);
+          const cards = extractCardsFromRows(rows, 'master');
+          if (!cards.length) {
+            showToast('No ration card numbers found in that file. Check column headers.', 'error');
+            return;
+          }
+          state.master = {
+            fileName: file.name,
+            savedAt: formatToday(),
+            cards: cards
+          };
+          saveMasterToStorage(state.master);
+          renderMasterStatus();
+          showToast('Master saved: ' + cards.length + ' ration cards loaded.');
+          if (state.transactions) {
+            runComparison();
+          }
+        } catch (err) {
+          showToast('Error reading master file: ' + (err.message || 'Invalid format'), 'error');
+        }
+      }
+
+      // Handle Transaction XLS Upload
+      async function handleTxFile(file) {
+        if (!file) return;
+        try {
+          const rows = await readSpreadsheetFile(file);
+          const txRows = extractCardsFromRows(rows, 'tx');
+          if (!txRows.length) {
+            showToast('No ration card numbers found in the transaction file.', 'error');
+            return;
+          }
+          state.transactions = {
+            fileName: file.name,
+            shopId: state.shopId,
+            month: state.month,
+            year: state.year,
+            rows: txRows
+          };
+          el.txLoadedStrip.classList.remove('hidden');
+          el.txLoadedInfo.textContent = 'Loaded: ' + file.name + ' (' + txRows.length + ' unique cards)';
+          showToast('Transaction file parsed: ' + txRows.length + ' cards.');
+          if (state.master && state.master.cards.length > 0) {
+            runComparison();
+          } else {
+            showToast('Now upload your Master list to compare.', 'warn');
+          }
+        } catch (err) {
+          showToast('Error reading transaction file: ' + (err.message || 'Invalid format'), 'error');
+        }
+      }
+
+      // Generate local demo CAPTCHA on canvas when backend proxy is unavailable
+      function renderDemoCaptcha() {
+        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+        let code = '';
+        for (let i = 0; i < 5; i++) {
+          code += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        state.demoCaptchaCode = code;
+        state.isDemoCaptcha = true;
+        state.captchaSessionToken = 'demo';
+
+        const canvas = el.demoCaptchaCanvas;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#f3f4f6';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        for (let i = 0; i < 6; i++) {
+          ctx.strokeStyle = 'rgba(24,24,22,0.22)';
+          ctx.beginPath();
+          ctx.moveTo(Math.random() * canvas.width, Math.random() * canvas.height);
+          ctx.lineTo(Math.random() * canvas.width, Math.random() * canvas.height);
+          ctx.stroke();
+        }
+        ctx.font = 'bold 24px monospace';
+        ctx.fillStyle = '#181816';
+        ctx.textBaseline = 'middle';
+        for (let i = 0; i < code.length; i++) {
+          ctx.save();
+          ctx.translate(20 + i * 26, 22 + (Math.random() * 6 - 3));
+          ctx.rotate((Math.random() - 0.5) * 0.3);
+          ctx.fillText(code[i], 0, 0);
+          ctx.restore();
+        }
+
+        el.captchaImg.classList.add('hidden');
+        el.captchaPlaceholder.classList.add('hidden');
+        el.demoCaptchaCanvas.classList.remove('hidden');
+        el.captchaInput.value = '';
+        el.captchaModeNote.innerHTML =
+          '<strong>Preview / Demo Captcha Mode:</strong> Netlify backend not detected here. Type <strong>' + code + '</strong> to test the in-app fetch flow, or deploy the included Netlify ZIP with your SmartPDS endpoints.';
+      }
+
+      // Load Live Captcha from Netlify Function (with graceful fallback)
+      async function loadLiveCaptcha() {
+        el.captchaPlaceholder.textContent = 'Loading Captcha...';
+        el.captchaPlaceholder.classList.remove('hidden');
+        el.captchaImg.classList.add('hidden');
+        el.demoCaptchaCanvas.classList.add('hidden');
+        el.autoFetchNotice.classList.add('hidden');
+
+        try {
+          const resp = await fetch('/.netlify/functions/pds-proxy?action=captcha', {
+            method: 'GET',
+            headers: { 'Accept': 'application/json' }
+          });
+          if (!resp.ok) {
+            const errData = await resp.json().catch(function () { return {}; });
+            throw new Error(errData.error || ('Proxy returned HTTP ' + resp.status));
+          }
+          const data = await resp.json();
+          if (!data.captchaImage) {
+            throw new Error(data.error || 'Captcha image missing from proxy response.');
+          }
+          state.isDemoCaptcha = false;
+          state.captchaSessionToken = data.sessionToken || '';
+          el.captchaImg.src = data.captchaImage;
+          el.captchaImg.classList.remove('hidden');
+          el.captchaPlaceholder.classList.add('hidden');
+          el.captchaInput.value = '';
+          el.captchaModeNote.textContent = 'Live SmartPDS Captcha loaded via Netlify Function. Enter it and click Fetch & Compare.';
+          showToast('Live Captcha loaded.');
+        } catch (err) {
+          el.captchaPlaceholder.textContent = 'Backend proxy unavailable';
+          showProxySetupNotice(err.message || 'Netlify Function not configured yet.');
+        }
+      }
+
+      function showProxySetupNotice(reason) {
+        el.autoFetchNotice.classList.remove('hidden');
+        el.autoFetchNotice.innerHTML =
+          '<div class="font-mono-ui font-bold uppercase text-xs mb-1.5">Netlify Backend Status: ' + escapeHtml(reason) + '</div>' +
+          '<p class="mb-2">Live fetching uses the pre-wired Netlify Function (<code>/.netlify/functions/pds-proxy</code>) connected to <strong>smartpds.up.gov.in/Epos_Spring</strong>. Deploy the included <code>pds-netlify-app.zip</code> folder via GitHub or Netlify CLI (no environment variables needed), or test below with Demo Captcha / Manual XLS upload.</p>' +
+          '<div class="flex flex-wrap gap-2 mt-2.5">' +
+            '<button id="btnTryDemoCaptcha" type="button" class="font-mono-ui text-xs font-bold uppercase px-3 py-1.5 bg-[#181816] text-white cursor-pointer">Try Demo Captcha</button>' +
+            '<button id="btnCopyAndOpenPortal" type="button" class="font-mono-ui text-xs font-bold uppercase px-3 py-1.5 bg-white text-[#181816] border-2 border-[#181816] cursor-pointer">Copy Shop ID &amp; Open Portal &nearr;</button>' +
+            '<button id="btnJumpToManual" type="button" class="font-mono-ui text-xs font-bold uppercase px-3 py-1.5 bg-white text-[#181816] border-2 border-[#181816] cursor-pointer">Upload XLS</button>' +
+            '<button id="btnNoticePaste" type="button" class="font-mono-ui text-xs font-bold uppercase px-3 py-1.5 bg-white text-[#181816] border-2 border-[#181816] cursor-pointer">Paste Table</button>' +
+          '</div>';
+
+        const demoCapBtn = document.getElementById('btnTryDemoCaptcha');
+        if (demoCapBtn) demoCapBtn.addEventListener('click', renderDemoCaptcha);
+        const openBtn = document.getElementById('btnCopyAndOpenPortal');
+        if (openBtn) openBtn.addEventListener('click', openSmartPdsPortal);
+        const jumpBtn = document.getElementById('btnJumpToManual');
+        if (jumpBtn) {
+          jumpBtn.addEventListener('click', function () {
+            el.manualUploadSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            el.txFileInput.click();
+          });
+        }
+        const noticePasteBtn = document.getElementById('btnNoticePaste');
+        if (noticePasteBtn) {
+          noticePasteBtn.addEventListener('click', function () {
+            el.pasteModal.classList.remove('hidden');
+            el.pasteTableInput.focus();
+          });
+        }
+      }
+
+      // Auto-Fetch Handler (Uses Netlify Function /.netlify/functions/pds-proxy + Demo Captcha support)
+      async function handleAutoFetch() {
+        syncParams('auto');
+        if (!state.shopId) {
+          showToast('Please enter a valid FPS Shop ID.', 'warn');
+          return;
+        }
+        if (!state.master || !state.master.cards.length) {
+          showToast('Upload your Master list (or click DEMO DATA) first.', 'warn');
+          return;
+        }
+
+        const captchaVal = (el.captchaInput.value || '').trim();
+        if (!captchaVal) {
+          showToast('Load and enter the Captcha first.', 'warn');
+          if (!state.captchaSessionToken) {
+            loadLiveCaptcha();
+          }
+          el.captchaInput.focus();
+          return;
+        }
+
+        // Demo Captcha flow
+        if (state.isDemoCaptcha) {
+          if (captchaVal.toUpperCase() !== state.demoCaptchaCode.toUpperCase()) {
+            showToast('Demo Captcha did not match. Try again.', 'error');
+            renderDemoCaptcha();
+            return;
+          }
+          el.autoFetchNotice.classList.add('hidden');
+          loadDemoData();
+          showToast('Demo Captcha verified — sample FPS transactions compared.');
+          return;
+        }
+
+        // Live Netlify Function fetch flow
+        el.btnAutoFetch.disabled = true;
+        el.autoFetchLabel.textContent = 'FETCHING...';
+        try {
+          const resp = await fetch('/.netlify/functions/pds-proxy?action=fetch', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              shopId: state.shopId,
+              month: state.month,
+              year: state.year,
+              captcha: captchaVal,
+              sessionToken: state.captchaSessionToken
+            })
+          });
+          const data = await resp.json().catch(function () { return {}; });
+          if (!resp.ok) {
+            throw new Error(data.error || ('Fetch failed with HTTP ' + resp.status));
+          }
+
+          let rawRows = [];
+          if (Array.isArray(data.rows) && data.rows.length) {
+            rawRows = data.rows;
+          } else if (typeof data.html === 'string' && data.html.trim()) {
+            rawRows = parseHtmlTableText(data.html);
+          }
+
+          const txRows = extractCardsFromRows(rawRows, 'tx');
+          if (!txRows.length) {
+            throw new Error(data.message || 'No transaction rows returned (check Captcha or Shop ID).');
+          }
+
+          state.transactions = {
+            fileName: 'Live_FPS_' + state.shopId + '_' + state.month + '_' + state.year,
+            shopId: state.shopId,
+            month: state.month,
+            year: state.year,
+            rows: txRows
+          };
+          el.txLoadedStrip.classList.remove('hidden');
+          el.txLoadedInfo.textContent = 'Fetched Live: ' + state.transactions.fileName + ' (' + txRows.length + ' unique cards)';
+          el.autoFetchNotice.classList.add('hidden');
+          runComparison();
+          showToast('Fetched & compared ' + txRows.length + ' live transactions.');
+        } catch (err) {
+          showProxySetupNotice(err.message || 'Could not fetch live transactions.');
+        } finally {
+          el.btnAutoFetch.disabled = false;
+          el.autoFetchLabel.textContent = 'FETCH & COMPARE';
+        }
+      }
+
+      // Load Realistic Sample Data for Immediate Testing
+      function loadDemoData() {
+        const sampleMaster = [
+          { sr: 1, cardNo: '214740118201', name: 'Ramesh Kumar', fatherName: 'Shiv Prasad', cardType: 'PHH', units: 5 },
+          { sr: 2, cardNo: '214740118202', name: 'Sunita Devi', fatherName: 'Mahesh Pal', cardType: 'AAY', units: 4 },
+          { sr: 3, cardNo: '214740118203', name: 'Mohd. Arif', fatherName: 'Abdul Rahman', cardType: 'PHH', units: 6 },
+          { sr: 4, cardNo: '214740118204', name: 'Kamlesh Kumari', fatherName: 'Rajesh Singh', cardType: 'PHH', units: 3 },
+          { sr: 5, cardNo: '214740118205', name: 'Suresh Chandra', fatherName: 'Ram Swaroop', cardType: 'AAY', units: 2 },
+          { sr: 6, cardNo: '214740118206', name: 'Geeta Devi', fatherName: 'Harishankar', cardType: 'PHH', units: 5 },
+          { sr: 7, cardNo: '214740118207', name: 'Vinod Kumar', fatherName: 'Babu Lal', cardType: 'PHH', units: 4 },
+          { sr: 8, cardNo: '214740118208', name: 'Rekha Sharma', fatherName: 'Dinesh Sharma', cardType: 'PHH', units: 4 },
+          { sr: 9, cardNo: '214740118209', name: 'Ashok Verma', fatherName: 'Kishan Lal', cardType: 'AAY', units: 3 },
+          { sr: 10, cardNo: '214740118210', name: 'Meena Devi', fatherName: 'Santosh Kumar', cardType: 'PHH', units: 7 },
+          { sr: 11, cardNo: '214740118211', name: 'Pramod Yadav', fatherName: 'Ram Nath', cardType: 'PHH', units: 5 },
+          { sr: 12, cardNo: '214740118212', name: 'Savitri Devi', fatherName: 'Gopal Das', cardType: 'AAY', units: 2 }
+        ];
+
+        const sampleTx = [
+          { sr: 1, cardNo: '214740118201', name: 'Ramesh Kumar', fatherName: 'Shiv Prasad', cardType: 'PHH', units: 5, txDate: '04/04/2026' },
+          { sr: 2, cardNo: '214740118202', name: 'Sunita Devi', fatherName: 'Mahesh Pal', cardType: 'AAY', units: 4, txDate: '05/04/2026' },
+          { sr: 3, cardNo: '214740118203', name: 'Mohd. Arif', fatherName: 'Abdul Rahman', cardType: 'PHH', units: 6, txDate: '06/04/2026' },
+          { sr: 4, cardNo: '214740118205', name: 'Suresh Chandra', fatherName: 'Ram Swaroop', cardType: 'AAY', units: 2, txDate: '07/04/2026' },
+          { sr: 5, cardNo: '214740118206', name: 'Geeta Devi', fatherName: 'Harishankar', cardType: 'PHH', units: 5, txDate: '08/04/2026' },
+          { sr: 6, cardNo: '214740118208', name: 'Rekha Sharma', fatherName: 'Dinesh Sharma', cardType: 'PHH', units: 4, txDate: '10/04/2026' },
+          { sr: 7, cardNo: '214740118210', name: 'Meena Devi', fatherName: 'Santosh Kumar', cardType: 'PHH', units: 7, txDate: '11/04/2026' },
+          { sr: 8, cardNo: '214740118212', name: 'Savitri Devi', fatherName: 'Gopal Das', cardType: 'AAY', units: 2, txDate: '12/04/2026' },
+          { sr: 9, cardNo: '214799004512', name: 'Karan Singh (Portability)', fatherName: 'Vijay Singh', cardType: 'PHH', units: 4, txDate: '13/04/2026' }
+        ];
+
+        state.master = {
+          fileName: 'sample_master_pakharpur.xlsx',
+          savedAt: formatToday(),
+          cards: sampleMaster
+        };
+        saveMasterToStorage(state.master);
+        renderMasterStatus();
+
+        state.transactions = {
+          fileName: 'Transaction_Details_for_FPS_Id__' + state.shopId + '_' + state.month + '_' + state.year + '.xls',
+          shopId: state.shopId,
+          month: state.month,
+          year: state.year,
+          rows: sampleTx
+        };
+        el.txLoadedStrip.classList.remove('hidden');
+        el.txLoadedInfo.textContent = 'Loaded: ' + state.transactions.fileName + ' (' + sampleTx.length + ' unique cards)';
+
+        state.activeTab = 'pending';
+        runComparison();
+        showToast('Sample Master (12 cards) & Transactions (9 cards) loaded.');
+      }
+
+      // Export Multi-sheet Excel (.xlsx)
+      function exportExcel() {
+        if (!state.comparison) return;
+        if (typeof window.XLSX === 'undefined') {
+          showToast('Excel library unavailable; exporting CSV instead.', 'warn');
+          exportCsv();
+          return;
+        }
+
+        function mapSheet(arr) {
+          return arr.map(function (r, idx) {
+            return {
+              'Sr No': idx + 1,
+              'Ration Card No': r.cardNo,
+              'Card Holder Name': r.name,
+              'Father / Husband Name': r.fatherName,
+              'Card Type': r.cardType,
+              'Units': r.units || '',
+              'Status': r.status.toUpperCase(),
+              'Transaction Date': r.txDate || ''
+            };
+          });
+        }
+
+        const wb = window.XLSX.utils.book_new();
+        const summaryRows = [
+          { Metric: 'FPS Shop ID', Value: state.shopId },
+          { Metric: 'Period', Value: state.month + ' ' + state.year },
+          { Metric: 'Master File', Value: state.master ? state.master.fileName : '' },
+          { Metric: 'Total Master Cards', Value: state.comparison.all.length },
+          { Metric: 'Distributed (Done)', Value: state.comparison.distributed.length },
+          { Metric: 'Pending', Value: state.comparison.pending.length },
+          { Metric: 'Extra / Portability', Value: state.comparison.extra.length }
+        ];
+
+        window.XLSX.utils.book_append_sheet(wb, window.XLSX.utils.json_to_sheet(summaryRows), 'Summary');
+        window.XLSX.utils.book_append_sheet(wb, window.XLSX.utils.json_to_sheet(mapSheet(state.comparison.pending)), 'Pending_List');
+        window.XLSX.utils.book_append_sheet(wb, window.XLSX.utils.json_to_sheet(mapSheet(state.comparison.distributed)), 'Distributed_List');
+        window.XLSX.utils.book_append_sheet(wb, window.XLSX.utils.json_to_sheet(mapSheet(state.comparison.extra)), 'Extra_Portability');
+
+        const outName = 'PDS_Compare_' + (state.shopId || 'FPS') + '_' + state.month + '_' + state.year + '.xlsx';
+        window.XLSX.writeFile(wb, outName);
+        showToast('Downloaded ' + outName);
+      }
+
+      // Export Current Tab as CSV
+      function exportCsv() {
+        const rows = getFilteredRows();
+        if (!rows.length) {
+          showToast('No rows to export.', 'warn');
+          return;
+        }
+        const headers = ['Sr No', 'Ration Card No', 'Card Holder Name', 'Father/Husband', 'Card Type', 'Units', 'Status', 'Tx Date'];
+        const lines = [headers.join(',')];
+        rows.forEach(function (r, idx) {
+          const vals = [
+            idx + 1,
+            '="' + r.cardNo + '"',
+            '"' + String(r.name || '').replace(/"/g, '""') + '"',
+            '"' + String(r.fatherName || '').replace(/"/g, '""') + '"',
+            r.cardType,
+            r.units || '',
+            r.status.toUpperCase(),
+            '"' + String(r.txDate || '').replace(/"/g, '""') + '"'
+          ];
+          lines.push(vals.join(','));
+        });
+        const blob = new Blob(['\uFEFF' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'PDS_' + state.activeTab + '_' + (state.shopId || 'FPS') + '_' + state.month + '_' + state.year + '.csv';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast('CSV downloaded.');
+      }
+
+      // Event Wiring
+      el.btnUploadMaster.addEventListener('click', function () {
+        el.masterFileInput.value = '';
+        el.masterFileInput.click();
+      });
+
+      el.masterFileInput.addEventListener('change', function (e) {
+        if (e.target.files && e.target.files[0]) {
+          handleMasterFile(e.target.files[0]);
+        }
+      });
+
+      el.btnLoadDemo.addEventListener('click', loadDemoData);
+
+      el.btnClearMaster.addEventListener('click', function () {
+        if (!state.master) return;
+        el.confirmModal.classList.remove('hidden');
+      });
+
+      el.btnCancelClear.addEventListener('click', function () {
+        el.confirmModal.classList.add('hidden');
+      });
+
+      el.btnConfirmClear.addEventListener('click', function () {
+        el.confirmModal.classList.add('hidden');
+        state.master = null;
+        state.comparison = null;
+        clearMasterFromStorage();
+        renderMasterStatus();
+        renderResults();
+        showToast('Saved master cleared.');
+      });
+
+      // Sync inputs
+      el.autoShopId.addEventListener('input', function () { syncParams('auto'); });
+      el.autoMonth.addEventListener('change', function () { syncParams('auto'); });
+      el.autoYear.addEventListener('input', function () { syncParams('auto'); });
+      el.manualShopId.addEventListener('input', function () { syncParams('manual'); });
+      el.manualMonth.addEventListener('change', function () { syncParams('manual'); });
+      el.manualYear.addEventListener('input', function () { syncParams('manual'); });
+
+      el.btnAutoFetch.addEventListener('click', handleAutoFetch);
+      el.btnLoadCaptcha.addEventListener('click', loadLiveCaptcha);
+
+      // Manual Dropzone
+      el.txDropzone.addEventListener('click', function () {
+        el.txFileInput.value = '';
+        el.txFileInput.click();
+      });
+
+      el.txDropzone.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          el.txFileInput.value = '';
+          el.txFileInput.click();
+        }
+      });
+
+      el.txDropzone.addEventListener('dragover', function (e) {
+        e.preventDefault();
+        el.txDropzone.classList.add('drag-over');
+      });
+
+      el.txDropzone.addEventListener('dragleave', function () {
+        el.txDropzone.classList.remove('drag-over');
+      });
+
+      el.txDropzone.addEventListener('drop', function (e) {
+        e.preventDefault();
+        el.txDropzone.classList.remove('drag-over');
+        if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) {
+          handleTxFile(e.dataTransfer.files[0]);
+        }
+      });
+
+      el.txFileInput.addEventListener('change', function (e) {
+        if (e.target.files && e.target.files[0]) {
+          handleTxFile(e.target.files[0]);
+        }
+      });
+
+      el.btnClearTx.addEventListener('click', function () {
+        state.transactions = null;
+        state.comparison = null;
+        el.txLoadedStrip.classList.add('hidden');
+        renderResults();
+        showToast('Transaction file cleared.');
+      });
+
+      // Tabs, search, filter, sort
+      el.tabBtns.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          state.activeTab = btn.getAttribute('data-tab');
+          renderResults();
+        });
+      });
+
+      el.searchInput.addEventListener('input', function (e) {
+        state.searchQuery = e.target.value;
+        renderResults();
+      });
+
+      el.typeFilter.addEventListener('change', function (e) {
+        state.typeFilter = e.target.value;
+        renderResults();
+      });
+
+      el.sortSelect.addEventListener('change', function (e) {
+        state.sortBy = e.target.value;
+        renderResults();
+      });
+
+      // Delegated copy click on table
+      el.resultsTbody.addEventListener('click', function (e) {
+        const cell = e.target.closest('.copy-card-cell');
+        if (cell) {
+          copyText(cell.getAttribute('data-card') || '');
+        }
+      });
+
+      // Exports & Print
+      el.btnExportExcel.addEventListener('click', exportExcel);
+      el.btnExportCsv.addEventListener('click', exportCsv);
+      el.btnPrintA4.addEventListener('click', function () {
+        window.print();
+      });
+
+      function openSmartPdsPortal() {
+        syncParams('auto');
+        if (state.shopId) {
+          copyText(state.shopId);
+        }
+        window.open('https://smartpds.up.gov.in/FPS_Trans_Int', '_blank', 'noopener,noreferrer');
+      }
+
+      function parsePastedTextToRows(raw) {
+        const trimmed = raw.trim();
+        if (!trimmed) return [];
+        if (trimmed.toLowerCase().includes('<table')) {
+          const htmlRows = parseHtmlTableText(trimmed);
+          if (htmlRows.length) return htmlRows;
+        }
+        const lines = trimmed.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
+        return lines
+          .map(function (line) {
+            if (line.includes('\t')) return line.split('\t').map(function (c) { return c.trim(); });
+            if (line.includes(',')) return parseCsvText(line)[0] || [];
+            return line.trim().split(/\s{2,}/).map(function (c) { return c.trim(); });
+          })
+          .filter(function (row) { return row.some(function (c) { return c.length > 0; }); });
+      }
+
+      function handlePastedTable() {
+        const raw = el.pasteTableInput.value || '';
+        const rows = parsePastedTextToRows(raw);
+        const txRows = extractCardsFromRows(rows, 'tx');
+        if (!txRows.length) {
+          showToast('No ration card numbers detected in the pasted text.', 'error');
+          return;
+        }
+        state.transactions = {
+          fileName: 'Pasted_FPS_' + (state.shopId || 'SHOP') + '_' + state.month + '_' + state.year,
+          shopId: state.shopId,
+          month: state.month,
+          year: state.year,
+          rows: txRows
+        };
+        el.pasteModal.classList.add('hidden');
+        el.txLoadedStrip.classList.remove('hidden');
+        el.txLoadedInfo.textContent = 'Loaded: ' + state.transactions.fileName + ' (' + txRows.length + ' unique cards)';
+        showToast('Parsed ' + txRows.length + ' cards from pasted table.');
+        if (state.master && state.master.cards.length > 0) {
+          runComparison();
+        } else {
+          showToast('Now upload your Master list to compare.', 'warn');
+        }
+      }
+
+      el.btnOpenPortalDirect.addEventListener('click', openSmartPdsPortal);
+      el.btnOpenPasteModal.addEventListener('click', function () {
+        el.pasteModal.classList.remove('hidden');
+        el.pasteTableInput.focus();
+      });
+      el.btnClosePasteModal.addEventListener('click', function () {
+        el.pasteModal.classList.add('hidden');
+      });
+      el.btnCancelPaste.addEventListener('click', function () {
+        el.pasteModal.classList.add('hidden');
+      });
+      el.btnParsePasted.addEventListener('click', handlePastedTable);
+
+      // Initialize
+      state.master = loadMasterFromStorage();
+      syncParams('auto');
+      renderMasterStatus();
+    })();
+  </script>
+</body>
+</html>
