@@ -1601,6 +1601,8 @@
       el.autoShopId.addEventListener('input', function () { syncParams('auto'); });
       el.autoMonth.addEventListener('change', function () { syncParams('auto'); });
       el.autoYear.addEventListener('input', function () { syncParams('auto'); });
+      el.btnAutoFetch.addEventListener('click', handleAutoFetch);
+      el.btnLoadCaptcha.addEventListener('click', loadLiveCaptcha);
       el.btnClearTx.addEventListener('click', function () {
         state.transactions = null;
         state.comparison = null;
