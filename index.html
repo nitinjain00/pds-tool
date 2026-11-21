@@ -1523,7 +1523,7 @@
           });
           const data = await resp.json().catch(function () { return {}; });
           if (!resp.ok) {
-            throw new Error(data.error || ('Fetch failed with HTTP ' + resp.status));
+            throw new Error((data.error || ('Fetch failed with HTTP ' + resp.status)) + (data.details ? ' (' + data.details + ')' : ''));
           }
 
           let rawRows = [];
