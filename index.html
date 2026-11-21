@@ -6,6 +6,7 @@
   <title>PDS राशन कार्ड टूल — smartpds.up.gov.in</title>
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <style>
     :root {
       --bg-paper: #f6f4ee;
@@ -174,7 +175,7 @@
     <!-- Card 1: Master File Status -->
     <section id="masterStatusCard" class="master-empty-box p-4 mb-4 no-print">
       <div id="masterStatusText" class="font-mono-ui text-sm sm:text-base font-medium leading-relaxed break-words">
-        No master list saved yet — upload your Master Ration Card Excel/CSV file or load sample data to test.
+        No master list saved yet — upload your Master Ration Card Excel, CSV, or PDF file (or load Demo Data).
       </div>
       <div class="mt-3.5 flex flex-wrap items-center gap-2.5">
         <button id="btnUploadMaster" type="button"
@@ -189,13 +190,19 @@
           <span>DEMO DATA</span>
         </button>
 
+        <button id="btnDownloadMasterXlsx" type="button"
+          class="hidden font-mono-ui text-xs sm:text-sm font-bold tracking-wider uppercase px-3.5 py-2.5 bg-[#166534] text-white border-2 border-[#166534] hover:bg-[#14532d] active:translate-y-px transition cursor-pointer inline-flex items-center gap-1.5">
+          <span aria-hidden="true">&#128196;</span>
+          <span>MASTER EXCEL (.XLSX)</span>
+        </button>
+
         <button id="btnClearMaster" type="button"
           class="font-mono-ui text-xs sm:text-sm font-bold tracking-wider uppercase px-4 py-2.5 bg-[#991b1b] text-white border-2 border-[#991b1b] hover:bg-[#7f1d1d] active:translate-y-px transition cursor-pointer inline-flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed">
           <span aria-hidden="true">&#128465;</span>
           <span>CLEAR</span>
         </button>
 
-        <input id="masterFileInput" type="file" accept=".xlsx,.xls,.csv,.htm,.html" class="hidden" />
+        <input id="masterFileInput" type="file" accept=".xlsx,.xls,.csv,.htm,.html,.pdf" class="hidden" />
       </div>
     </section>
 
@@ -535,6 +542,7 @@
         masterStatusText: document.getElementById('masterStatusText'),
         btnUploadMaster: document.getElementById('btnUploadMaster'),
         btnLoadDemo: document.getElementById('btnLoadDemo'),
+        btnDownloadMasterXlsx: document.getElementById('btnDownloadMasterXlsx'),
         btnClearMaster: document.getElementById('btnClearMaster'),
         masterFileInput: document.getElementById('masterFileInput'),
 
@@ -768,6 +776,76 @@
           rows.push(cells);
         }
         return rows;
+      }
+
+      // Extract table rows from a text-based PDF using PDF.js
+      async function readPdfFileToRows(file) {
+        if (typeof window.pdfjsLib === 'undefined') {
+          throw new Error('PDF reader library failed to load. Check your internet connection.');
+        }
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+          'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        const buffer = await file.arrayBuffer();
+        const pdf = await window.pdfjsLib.getDocument({ data: buffer }).promise;
+        const allRows = [];
+
+        for (let p = 1; p <= pdf.numPages; p++) {
+          const page = await pdf.getPage(p);
+          const content = await page.getTextContent();
+          const lineMap = [];
+
+          content.items.forEach(function (item) {
+            const text = (item.str || '').trim();
+            if (!text) return;
+            const x = item.transform ? item.transform[4] : 0;
+            const y = item.transform ? item.transform[5] : 0;
+            let line = lineMap.find(function (l) { return Math.abs(l.y - y) <= 4; });
+            if (!line) {
+              line = { y: y, cells: [] };
+              lineMap.push(line);
+            }
+            line.cells.push({ x: x, text: text });
+          });
+
+          // Top-to-bottom on page (higher y is higher on PDF page)
+          lineMap.sort(function (a, b) { return b.y - a.y; });
+          lineMap.forEach(function (line) {
+            line.cells.sort(function (a, b) { return a.x - b.x; });
+            const row = line.cells.map(function (c) { return c.text; });
+            if (row.length) allRows.push(row);
+          });
+        }
+
+        return allRows;
+      }
+
+      // Download the currently loaded Master list as a clean .xlsx Excel file
+      function downloadMasterAsExcel() {
+        if (!state.master || !state.master.cards.length) {
+          showToast('No master list loaded yet.', 'warn');
+          return;
+        }
+        if (typeof window.XLSX === 'undefined') {
+          showToast('Excel library unavailable.', 'error');
+          return;
+        }
+        const rows = state.master.cards.map(function (c, idx) {
+          return {
+            'Sr No': idx + 1,
+            'Ration Card No': c.cardNo,
+            'Card Holder Name': c.name,
+            'Father / Husband Name': c.fatherName,
+            'Card Type': c.cardType,
+            'Units': c.units || ''
+          };
+        });
+        const wb = window.XLSX.utils.book_new();
+        window.XLSX.utils.book_append_sheet(wb, window.XLSX.utils.json_to_sheet(rows), 'Master_List');
+        const base = (state.master.fileName || 'master_list').replace(/\.[^.]+$/, '');
+        const outName = base + '_master.xlsx';
+        window.XLSX.writeFile(wb, outName);
+        showToast('Downloaded ' + outName);
       }
 
       // Unified file reader -> 2D array of strings
@@ -1041,12 +1119,14 @@
             'Master saved \u2014 ' + state.master.cards.length + ' cards | ' +
             state.master.fileName + ' | ' + state.master.savedAt;
           el.btnClearMaster.disabled = false;
+          el.btnDownloadMasterXlsx.classList.remove('hidden');
         } else {
           el.masterStatusCard.className = 'master-empty-box p-4 mb-4 no-print';
           el.masterStatusText.className = 'font-mono-ui text-sm sm:text-base font-medium leading-relaxed break-words text-amber-950';
           el.masterStatusText.textContent =
             'No master list saved yet \u2014 upload your Master Excel/CSV file or click DEMO DATA to preview.';
           el.btnClearMaster.disabled = true;
+          el.btnDownloadMasterXlsx.classList.add('hidden');
         }
       }
 
@@ -1188,14 +1268,23 @@
           .replace(/"/g, '&quot;');
       }
 
-      // Handle Master File Upload
+      // Handle Master File Upload (Excel, CSV, HTML, or PDF)
       async function handleMasterFile(file) {
         if (!file) return;
+        const isPdf = (file.name || '').toLowerCase().endsWith('.pdf') || file.type === 'application/pdf';
         try {
-          const rows = await readSpreadsheetFile(file);
+          if (isPdf) {
+            showToast('Reading PDF pages...');
+          }
+          const rows = isPdf ? await readPdfFileToRows(file) : await readSpreadsheetFile(file);
           const cards = extractCardsFromRows(rows, 'master');
           if (!cards.length) {
-            showToast('No ration card numbers found in that file. Check column headers.', 'error');
+            showToast(
+              isPdf
+                ? 'No ration card numbers found in PDF. (Scanned image PDFs cannot be read—use a text PDF or Excel.)'
+                : 'No ration card numbers found in that file. Check column headers.',
+              'error'
+            );
             return;
           }
           state.master = {
@@ -1577,6 +1666,7 @@
       });
 
       el.btnLoadDemo.addEventListener('click', loadDemoData);
+      el.btnDownloadMasterXlsx.addEventListener('click', downloadMasterAsExcel);
 
       el.btnClearMaster.addEventListener('click', function () {
         if (!state.master) return;
