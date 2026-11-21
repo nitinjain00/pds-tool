@@ -778,7 +778,7 @@
         return rows;
       }
 
-      // Extract table rows from a text-based PDF using PDF.js
+      // Extract table rows from a text-based PDF using PDF.js (handles multi-line headers & \xa0 spaces)
       async function readPdfFileToRows(file) {
         if (typeof window.pdfjsLib === 'undefined') {
           throw new Error('PDF reader library failed to load. Check your internet connection.');
@@ -788,19 +788,22 @@
 
         const buffer = await file.arrayBuffer();
         const pdf = await window.pdfjsLib.getDocument({ data: buffer }).promise;
-        const allRows = [];
+        const structuredRows = [];
+        let totalTextItems = 0;
 
         for (let p = 1; p <= pdf.numPages; p++) {
           const page = await pdf.getPage(p);
           const content = await page.getTextContent();
-          const lineMap = [];
+          totalTextItems += content.items.length;
 
+          // Build clean y-sorted lines (normalizing \xa0 non-breaking spaces)
+          const lineMap = [];
           content.items.forEach(function (item) {
-            const text = (item.str || '').trim();
+            const text = (item.str || '').replace(/\u00a0/g, ' ').trim();
             if (!text) return;
             const x = item.transform ? item.transform[4] : 0;
             const y = item.transform ? item.transform[5] : 0;
-            let line = lineMap.find(function (l) { return Math.abs(l.y - y) <= 4; });
+            let line = lineMap.find(function (l) { return Math.abs(l.y - y) <= 6; });
             if (!line) {
               line = { y: y, cells: [] };
               lineMap.push(line);
@@ -808,16 +811,49 @@
             line.cells.push({ x: x, text: text });
           });
 
-          // Top-to-bottom on page (higher y is higher on PDF page)
           lineMap.sort(function (a, b) { return b.y - a.y; });
-          lineMap.forEach(function (line) {
+          const pageLines = lineMap.map(function (line) {
             line.cells.sort(function (a, b) { return a.x - b.x; });
-            const row = line.cells.map(function (c) { return c.text; });
-            if (row.length) allRows.push(row);
+            return line.cells.map(function (c) { return c.text; }).join(' ').replace(/\s+/g, ' ').trim();
           });
+
+          const pageText = pageLines.join('\n');
+
+          // Primary SmartPDS/NFSA PDF row pattern: "<Sr> <10-14 digit CardNo> <Names> <Units> <DD/MM/YYYY>"
+          const rowRegex = /(?:^|\n)\s*\d{1,4}\s+(\d{10,14})\s+(.+?)\s+(\d{1,2})\s+\d{2}\/\d{2}\/\d{4}(?=\n|$)/g;
+          let matchCount = 0;
+          let m;
+          while ((m = rowRegex.exec(pageText)) !== null) {
+            matchCount++;
+            const cardNo = m[1];
+            const nameText = m[2].replace(/\s+/g, ' ').trim();
+            const units = m[3];
+            structuredRows.push([cardNo, nameText, '—', 'PHH', units]);
+          }
+
+          // Fallback for other PDF table layouts without Units/Date
+          if (matchCount === 0) {
+            pageLines.forEach(function (lineStr) {
+              const cm = lineStr.match(/\b(\d{10,14})\b/);
+              if (cm) {
+                const cardNo = cm[1];
+                const rest = lineStr.replace(cardNo, '').replace(/^\d{1,4}\s+/, '').replace(/\s+/g, ' ').trim();
+                structuredRows.push([cardNo, rest || '—', '—', 'PHH', '']);
+              }
+            });
+          }
         }
 
-        return allRows;
+        if (totalTextItems === 0) {
+          throw new Error('This PDF is a scanned image with no selectable text.');
+        }
+
+        if (structuredRows.length > 0) {
+          // Prepend synthetic header so extractCardsFromRows maps every column cleanly
+          return [['Ration Card No', 'Name', 'Father', 'Type', 'Units']].concat(structuredRows);
+        }
+
+        return [];
       }
 
       // Download the currently loaded Master list as a clean .xlsx Excel file
