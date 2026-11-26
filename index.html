@@ -7,6 +7,7 @@
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <style>
     :root {
       --bg-paper: #f6f4ee;
@@ -351,6 +352,10 @@
               class="font-mono-ui text-xs font-bold uppercase px-3 py-2 bg-white text-[#181816] border-2 border-[#181816] hover:bg-neutral-100 cursor-pointer">
               CSV
             </button>
+            <button id="btnSaveA4Pdf" type="button"
+              class="font-mono-ui text-xs font-bold uppercase px-3 py-2 bg-[#1d4ed8] text-white border-2 border-[#1d4ed8] hover:bg-[#1e40af] cursor-pointer">
+              &#128196; SAVE A4 PDF
+            </button>
             <button id="btnPrintA4" type="button"
               class="font-mono-ui text-xs font-bold uppercase px-3 py-2 bg-[#181816] text-white border-2 border-[#181816] hover:bg-neutral-800 cursor-pointer">
               &#128424; PRINT A4
@@ -639,6 +644,7 @@
 
         btnExportExcel: document.getElementById('btnExportExcel'),
         btnExportCsv: document.getElementById('btnExportCsv'),
+        btnSaveA4Pdf: document.getElementById('btnSaveA4Pdf'),
         btnPrintA4: document.getElementById('btnPrintA4'),
 
         printMetaLine: document.getElementById('printMetaLine'),
@@ -1856,6 +1862,98 @@
       // Exports & Print
       el.btnExportExcel.addEventListener('click', exportExcel);
       el.btnExportCsv.addEventListener('click', exportCsv);
+      async function saveA4Pdf() {
+        if (!state.comparison) return;
+        const rows = getFilteredRows();
+        if (!rows.length) {
+          showToast('No rows to save as PDF.', 'warn');
+          return;
+        }
+        if (typeof window.html2pdf === 'undefined') {
+          showToast('PDF generator loading or offline — opening browser Print instead.', 'warn');
+          window.print();
+          return;
+        }
+
+        el.btnSaveA4Pdf.disabled = true;
+        const origLabel = el.btnSaveA4Pdf.innerHTML;
+        el.btnSaveA4Pdf.textContent = 'GENERATING PDF...';
+
+        try {
+          const blankHeader = state.blankColTitle || 'Remarks';
+          const tabLabel = state.activeTab === 'pending' ? 'Pending List'
+            : state.activeTab === 'distributed' ? 'Distributed List'
+              : state.activeTab === 'extra' ? 'Extra / Portability'
+                : 'All Master Cards';
+
+          const wrapper = document.createElement('div');
+          wrapper.style.width = '740px';
+          wrapper.style.padding = '12px';
+          wrapper.style.background = '#ffffff';
+          wrapper.style.color = '#000000';
+          wrapper.style.fontFamily = '"Inter", system-ui, "Noto Sans Devanagari", sans-serif';
+
+          let thCols = '<th style="border:1px solid #222;padding:5px;width:36px;">#</th>' +
+            '<th style="border:1px solid #222;padding:5px;">Ration Card No</th>' +
+            '<th style="border:1px solid #222;padding:5px;">Card Holder</th>';
+          if (state.visibleCols.father) thCols += '<th style="border:1px solid #222;padding:5px;">Father / Husband</th>';
+          if (state.visibleCols.type) thCols += '<th style="border:1px solid #222;padding:5px;text-align:center;">Type</th>';
+          if (state.visibleCols.units) thCols += '<th style="border:1px solid #222;padding:5px;text-align:center;">Units</th>';
+          if (state.visibleCols.status) thCols += '<th style="border:1px solid #222;padding:5px;text-align:center;">Status</th>';
+          if (state.visibleCols.blank) thCols += '<th style="border:1px solid #222;padding:5px;min-width:95px;text-align:center;">' + escapeHtml(blankHeader) + '</th>';
+
+          let tbodyHtml = '';
+          rows.forEach(function (r, idx) {
+            let tds = '<td style="border:1px solid #333;padding:4px 5px;text-align:center;">' + (idx + 1) + '</td>' +
+              '<td style="border:1px solid #333;padding:4px 5px;font-family:monospace;font-weight:600;">' + escapeHtml(r.cardNo) + '</td>' +
+              '<td style="border:1px solid #333;padding:4px 5px;">' + escapeHtml(r.name) + '</td>';
+            if (state.visibleCols.father) tds += '<td style="border:1px solid #333;padding:4px 5px;">' + escapeHtml(r.fatherName) + '</td>';
+            if (state.visibleCols.type) tds += '<td style="border:1px solid #333;padding:4px 5px;text-align:center;">' + escapeHtml(r.cardType) + '</td>';
+            if (state.visibleCols.units) tds += '<td style="border:1px solid #333;padding:4px 5px;text-align:center;">' + (r.units > 0 ? r.units : '—') + '</td>';
+            if (state.visibleCols.status) tds += '<td style="border:1px solid #333;padding:4px 5px;text-align:center;font-weight:700;">' + escapeHtml(r.status.toUpperCase()) + '</td>';
+            if (state.visibleCols.blank) tds += '<td style="border:1px solid #333;padding:4px 5px;min-width:95px;">&nbsp;</td>';
+            tbodyHtml += '<tr style="page-break-inside:avoid;">' + tds + '</tr>';
+          });
+
+          wrapper.innerHTML =
+            '<div style="border-bottom:2px solid #000;padding-bottom:6px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:flex-start;">' +
+              '<div>' +
+                '<div style="font-size:15px;font-weight:700;">PDS Ration Card Report — ' + escapeHtml(tabLabel) + '</div>' +
+                '<div style="font-size:11px;margin-top:2px;">FPS Shop ID: ' + escapeHtml(state.shopId) + ' | Period: ' + escapeHtml(state.month + ' ' + state.year) + ' | Cards: ' + rows.length + '</div>' +
+              '</div>' +
+              '<div style="text-align:right;font-size:10px;">' +
+                '<div>Mukesh Kumar Jain (Pakharpur)</div>' +
+                '<div>Date: ' + escapeHtml(formatToday()) + '</div>' +
+              '</div>' +
+            '</div>' +
+            '<table style="width:100%;border-collapse:collapse;font-size:10.5px;">' +
+              '<thead><tr style="background:#efefef;">' + thCols + '</tr></thead>' +
+              '<tbody>' + tbodyHtml + '</tbody>' +
+            '</table>';
+
+          const outFile = 'PDS_' + state.activeTab + '_' + (state.shopId || 'FPS') + '_' + state.month + '_' + state.year + '.pdf';
+          await window.html2pdf()
+            .set({
+              margin: [8, 8, 8, 8],
+              filename: outFile,
+              image: { type: 'jpeg', quality: 0.96 },
+              html2canvas: { scale: 2, useCORS: true },
+              jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+              pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+            })
+            .from(wrapper)
+            .save();
+
+          showToast('Saved A4 PDF: ' + outFile);
+        } catch (err) {
+          showToast('PDF failed: ' + (err.message || 'Try Print A4'), 'error');
+        } finally {
+          el.btnSaveA4Pdf.disabled = false;
+          el.btnSaveA4Pdf.innerHTML = origLabel;
+        }
+      }
+
+      el.btnSaveA4Pdf.addEventListener('click', saveA4Pdf);
       el.btnPrintA4.addEventListener('click', function () {
         applyColumnVisibility();
         try {
