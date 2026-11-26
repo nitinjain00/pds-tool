@@ -7,7 +7,8 @@
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
     :root {
       --bg-paper: #f6f4ee;
@@ -363,6 +364,42 @@
           </div>
         </div>
 
+          <!-- Print / Export Column Selector -->
+          <div class="p-2.5 mb-3.5 border-2 border-[#181816] bg-[#faf9f5]">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+              <span class="font-mono-ui text-[11px] font-bold uppercase tracking-wider text-[#181816]">
+                &#9998; Tick Columns to Include in PDF / Print / Excel:
+              </span>
+              <div class="flex items-center gap-1.5">
+                <label for="blankColTitleInput" class="font-mono-ui text-[10px] uppercase text-neutral-600">Empty Col Title:</label>
+                <input id="blankColTitleInput" type="text" value="Remarks" maxlength="20"
+                  class="border border-[#181816] bg-white px-1.5 py-0.5 font-mono-ui text-[11px] w-24 outline-none" />
+              </div>
+            </div>
+            <div class="flex flex-wrap gap-x-3.5 gap-y-1.5 font-mono-ui text-xs">
+              <label class="inline-flex items-center gap-1.5 cursor-pointer select-none">
+                <input type="checkbox" class="col-toggle accent-[#181816]" data-col="father" checked />
+                <span>Father/Husband</span>
+              </label>
+              <label class="inline-flex items-center gap-1.5 cursor-pointer select-none">
+                <input type="checkbox" class="col-toggle accent-[#181816]" data-col="type" checked />
+                <span>Type (PHH/AAY)</span>
+              </label>
+              <label class="inline-flex items-center gap-1.5 cursor-pointer select-none">
+                <input type="checkbox" class="col-toggle accent-[#181816]" data-col="units" checked />
+                <span>Units</span>
+              </label>
+              <label class="inline-flex items-center gap-1.5 cursor-pointer select-none">
+                <input type="checkbox" class="col-toggle accent-[#181816]" data-col="status" checked />
+                <span>Status (Pending/Done)</span>
+              </label>
+              <label class="inline-flex items-center gap-1.5 cursor-pointer select-none font-bold text-[#1b5e20]">
+                <input type="checkbox" class="col-toggle accent-[#166534]" data-col="blank" checked />
+                <span>+ Empty Write Column</span>
+              </label>
+            </div>
+          </div>
+
         <!-- 4 KPI Tiles -->
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-3.5">
           <div class="p-3 border-2 border-[#181816] bg-[#faf9f5]">
@@ -440,41 +477,7 @@
             </div>
           </div>
 
-          <!-- Print / Export Column Selector -->
-          <div class="p-2.5 border-2 border-[#181816] bg-[#faf9f5]">
-            <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
-              <span class="font-mono-ui text-[11px] font-bold uppercase tracking-wider text-[#181816]">
-                &#9998; Select Columns for Print &amp; Excel:
-              </span>
-              <div class="flex items-center gap-1.5">
-                <label for="blankColTitleInput" class="font-mono-ui text-[10px] uppercase text-neutral-600">Empty Col Title:</label>
-                <input id="blankColTitleInput" type="text" value="Remarks" maxlength="20"
-                  class="border border-[#181816] bg-white px-1.5 py-0.5 font-mono-ui text-[11px] w-24 outline-none" />
-              </div>
-            </div>
-            <div class="flex flex-wrap gap-x-3.5 gap-y-1.5 font-mono-ui text-xs">
-              <label class="inline-flex items-center gap-1.5 cursor-pointer select-none">
-                <input type="checkbox" class="col-toggle accent-[#181816]" data-col="father" checked />
-                <span>Father/Husband</span>
-              </label>
-              <label class="inline-flex items-center gap-1.5 cursor-pointer select-none">
-                <input type="checkbox" class="col-toggle accent-[#181816]" data-col="type" checked />
-                <span>Type (PHH/AAY)</span>
-              </label>
-              <label class="inline-flex items-center gap-1.5 cursor-pointer select-none">
-                <input type="checkbox" class="col-toggle accent-[#181816]" data-col="units" checked />
-                <span>Units</span>
-              </label>
-              <label class="inline-flex items-center gap-1.5 cursor-pointer select-none">
-                <input type="checkbox" class="col-toggle accent-[#181816]" data-col="status" checked />
-                <span>Status (Pending/Done)</span>
-              </label>
-              <label class="inline-flex items-center gap-1.5 cursor-pointer select-none font-bold text-[#1b5e20]">
-                <input type="checkbox" class="col-toggle accent-[#166534]" data-col="blank" checked />
-                <span>+ Empty Write Column</span>
-              </label>
-            </div>
-          </div>
+
         </div>
 
         <!-- Responsive Table -->
@@ -1059,17 +1062,27 @@
             }
           }
 
-          if (foundCard !== -1) {
+          if (foundCard !== -1 || (foundName !== -1 && (foundFather !== -1 || foundUnits !== -1))) {
             headerIdx = r;
-            colMap = {
-              card: foundCard,
-              name: foundName,
-              father: foundFather,
-              type: foundType,
-              units: foundUnits,
-              date: foundDate
-            };
-            break;
+            if (foundCard === -1 && r + 1 < rows.length) {
+              for (let c = 0; c < rows[r + 1].length; c++) {
+                if (looksLikeCardNumber(rows[r + 1][c])) {
+                  foundCard = c;
+                  break;
+                }
+              }
+            }
+            if (foundCard !== -1) {
+              colMap = {
+                card: foundCard,
+                name: foundName,
+                father: foundFather,
+                type: foundType,
+                units: foundUnits,
+                date: foundDate
+              };
+              break;
+            }
           }
         }
 
@@ -1115,8 +1128,8 @@
           const rowJoined = row.join(' ').toLowerCase();
           if (rowJoined.includes('grand total') || cardNo.toLowerCase() === 'total') continue;
 
-          const name = colMap.name !== -1 && row[colMap.name] ? String(row[colMap.name]).trim() : '—';
-          const fatherName = colMap.father !== -1 && row[colMap.father] ? String(row[colMap.father]).trim() : '—';
+          const name = colMap.name !== -1 && row[colMap.name] ? String(row[colMap.name]).replace(/\u00a0/g, ' ').trim() : '—';
+          const fatherName = colMap.father !== -1 && row[colMap.father] ? String(row[colMap.father]).replace(/\u00a0/g, ' ').trim() : '—';
           const cardType = colMap.type !== -1 && row[colMap.type] ? normalizeCardType(row[colMap.type]) : 'PHH';
           const unitsRaw = colMap.units !== -1 && row[colMap.units] ? parseInt(String(row[colMap.units]).replace(/[^\d]/g, ''), 10) : NaN;
           const units = isNaN(unitsRaw) ? 0 : unitsRaw;
@@ -1869,16 +1882,16 @@
           showToast('No rows to save as PDF.', 'warn');
           return;
         }
-        if (typeof window.html2pdf === 'undefined') {
-          showToast('PDF generator loading or offline — opening browser Print instead.', 'warn');
+        if (typeof window.html2canvas === 'undefined' || typeof window.jspdf === 'undefined') {
+          showToast('PDF libraries still loading or offline — opening browser Print instead.', 'warn');
           window.print();
           return;
         }
 
         el.btnSaveA4Pdf.disabled = true;
         const origLabel = el.btnSaveA4Pdf.innerHTML;
-        el.btnSaveA4Pdf.textContent = 'GENERATING PDF...';
 
+        let host = null;
         try {
           const blankHeader = state.blankColTitle || 'Remarks';
           const tabLabel = state.activeTab === 'pending' ? 'Pending List'
@@ -1886,12 +1899,20 @@
               : state.activeTab === 'extra' ? 'Extra / Portability'
                 : 'All Master Cards';
 
-          const wrapper = document.createElement('div');
-          wrapper.style.width = '740px';
-          wrapper.style.padding = '12px';
-          wrapper.style.background = '#ffffff';
-          wrapper.style.color = '#000000';
-          wrapper.style.fontFamily = '"Inter", system-ui, "Noto Sans Devanagari", sans-serif';
+          const ROWS_PER_PAGE = 28;
+          const totalPages = Math.ceil(rows.length / ROWS_PER_PAGE);
+
+          // Render stage at (0,0) behind a lightweight progress overlay so html2canvas never captures blank
+          host = document.createElement('div');
+          host.style.position = 'fixed';
+          host.style.left = '0';
+          host.style.top = '0';
+          host.style.width = '760px';
+          host.style.background = '#ffffff';
+          host.style.color = '#000000';
+          host.style.zIndex = '9998';
+          host.style.pointerEvents = 'none';
+          document.body.appendChild(host);
 
           let thCols = '<th style="border:1px solid #222;padding:5px;width:36px;">#</th>' +
             '<th style="border:1px solid #222;padding:5px;">Ration Card No</th>' +
@@ -1900,54 +1921,77 @@
           if (state.visibleCols.type) thCols += '<th style="border:1px solid #222;padding:5px;text-align:center;">Type</th>';
           if (state.visibleCols.units) thCols += '<th style="border:1px solid #222;padding:5px;text-align:center;">Units</th>';
           if (state.visibleCols.status) thCols += '<th style="border:1px solid #222;padding:5px;text-align:center;">Status</th>';
-          if (state.visibleCols.blank) thCols += '<th style="border:1px solid #222;padding:5px;min-width:95px;text-align:center;">' + escapeHtml(blankHeader) + '</th>';
+          if (state.visibleCols.blank) thCols += '<th style="border:1px solid #222;padding:5px;min-width:100px;text-align:center;">' + escapeHtml(blankHeader) + '</th>';
 
-          let tbodyHtml = '';
-          rows.forEach(function (r, idx) {
-            let tds = '<td style="border:1px solid #333;padding:4px 5px;text-align:center;">' + (idx + 1) + '</td>' +
-              '<td style="border:1px solid #333;padding:4px 5px;font-family:monospace;font-weight:600;">' + escapeHtml(r.cardNo) + '</td>' +
-              '<td style="border:1px solid #333;padding:4px 5px;">' + escapeHtml(r.name) + '</td>';
-            if (state.visibleCols.father) tds += '<td style="border:1px solid #333;padding:4px 5px;">' + escapeHtml(r.fatherName) + '</td>';
-            if (state.visibleCols.type) tds += '<td style="border:1px solid #333;padding:4px 5px;text-align:center;">' + escapeHtml(r.cardType) + '</td>';
-            if (state.visibleCols.units) tds += '<td style="border:1px solid #333;padding:4px 5px;text-align:center;">' + (r.units > 0 ? r.units : '—') + '</td>';
-            if (state.visibleCols.status) tds += '<td style="border:1px solid #333;padding:4px 5px;text-align:center;font-weight:700;">' + escapeHtml(r.status.toUpperCase()) + '</td>';
-            if (state.visibleCols.blank) tds += '<td style="border:1px solid #333;padding:4px 5px;min-width:95px;">&nbsp;</td>';
-            tbodyHtml += '<tr style="page-break-inside:avoid;">' + tds + '</tr>';
-          });
+          const { jsPDF } = window.jspdf;
+          const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+          const pageW = pdf.internal.pageSize.getWidth();
+          const margin = 8;
+          const imgW = pageW - margin * 2;
 
-          wrapper.innerHTML =
-            '<div style="border-bottom:2px solid #000;padding-bottom:6px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:flex-start;">' +
-              '<div>' +
-                '<div style="font-size:15px;font-weight:700;">PDS Ration Card Report — ' + escapeHtml(tabLabel) + '</div>' +
-                '<div style="font-size:11px;margin-top:2px;">FPS Shop ID: ' + escapeHtml(state.shopId) + ' | Period: ' + escapeHtml(state.month + ' ' + state.year) + ' | Cards: ' + rows.length + '</div>' +
-              '</div>' +
-              '<div style="text-align:right;font-size:10px;">' +
-                '<div>Mukesh Kumar Jain (Pakharpur)</div>' +
-                '<div>Date: ' + escapeHtml(formatToday()) + '</div>' +
-              '</div>' +
-            '</div>' +
-            '<table style="width:100%;border-collapse:collapse;font-size:10.5px;">' +
-              '<thead><tr style="background:#efefef;">' + thCols + '</tr></thead>' +
-              '<tbody>' + tbodyHtml + '</tbody>' +
-            '</table>';
+          for (let pageIdx = 0; pageIdx < totalPages; pageIdx++) {
+            el.btnSaveA4Pdf.textContent = 'PDF ' + (pageIdx + 1) + '/' + totalPages + '...';
+            const chunk = rows.slice(pageIdx * ROWS_PER_PAGE, (pageIdx + 1) * ROWS_PER_PAGE);
+
+            let tbodyHtml = '';
+            chunk.forEach(function (r, idx) {
+              const globalIdx = pageIdx * ROWS_PER_PAGE + idx + 1;
+              let tds = '<td style="border:1px solid #333;padding:4px 5px;text-align:center;">' + globalIdx + '</td>' +
+                '<td style="border:1px solid #333;padding:4px 5px;font-family:monospace;font-weight:600;">' + escapeHtml(r.cardNo) + '</td>' +
+                '<td style="border:1px solid #333;padding:4px 5px;">' + escapeHtml(r.name) + '</td>';
+              if (state.visibleCols.father) tds += '<td style="border:1px solid #333;padding:4px 5px;">' + escapeHtml(r.fatherName) + '</td>';
+              if (state.visibleCols.type) tds += '<td style="border:1px solid #333;padding:4px 5px;text-align:center;">' + escapeHtml(r.cardType) + '</td>';
+              if (state.visibleCols.units) tds += '<td style="border:1px solid #333;padding:4px 5px;text-align:center;">' + (r.units > 0 ? r.units : '—') + '</td>';
+              if (state.visibleCols.status) tds += '<td style="border:1px solid #333;padding:4px 5px;text-align:center;font-weight:700;">' + escapeHtml(r.status.toUpperCase()) + '</td>';
+              if (state.visibleCols.blank) tds += '<td style="border:1px solid #333;padding:4px 5px;min-width:100px;">&nbsp;</td>';
+              tbodyHtml += '<tr>' + tds + '</tr>';
+            });
+
+            host.innerHTML =
+              '<div style="padding:10px;background:#fff;color:#000;font-family:\'Inter\',system-ui,\'Noto Sans Devanagari\',sans-serif;">' +
+                '<div style="border-bottom:2px solid #000;padding-bottom:6px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:flex-start;">' +
+                  '<div>' +
+                    '<div style="font-size:15px;font-weight:700;">PDS Ration Card Report — ' + escapeHtml(tabLabel) + '</div>' +
+                    '<div style="font-size:11px;margin-top:2px;">FPS Shop ID: ' + escapeHtml(state.shopId) + ' | Period: ' + escapeHtml(state.month + ' ' + state.year) + ' | Total: ' + rows.length + ' | Page ' + (pageIdx + 1) + ' of ' + totalPages + '</div>' +
+                  '</div>' +
+                  '<div style="text-align:right;font-size:10px;">' +
+                    '<div>Mukesh Kumar Jain (Pakharpur)</div>' +
+                    '<div>Date: ' + escapeHtml(formatToday()) + '</div>' +
+                  '</div>' +
+                '</div>' +
+                '<table style="width:100%;border-collapse:collapse;font-size:11px;">' +
+                  '<thead><tr style="background:#efefef;">' + thCols + '</tr></thead>' +
+                  '<tbody>' + tbodyHtml + '</tbody>' +
+                '</table>' +
+              '</div>';
+
+            await new Promise(function (resolve) { requestAnimationFrame(function () { setTimeout(resolve, 40); }); });
+
+            const canvas = await window.html2canvas(host, {
+              scale: 2,
+              useCORS: true,
+              backgroundColor: '#ffffff',
+              scrollX: 0,
+              scrollY: 0,
+              windowWidth: 760
+            });
+
+            const imgData = canvas.toDataURL('image/jpeg', 0.94);
+            const imgH = (canvas.height * imgW) / canvas.width;
+
+            if (pageIdx > 0) pdf.addPage();
+            pdf.addImage(imgData, 'JPEG', margin, margin, imgW, imgH);
+          }
 
           const outFile = 'PDS_' + state.activeTab + '_' + (state.shopId || 'FPS') + '_' + state.month + '_' + state.year + '.pdf';
-          await window.html2pdf()
-            .set({
-              margin: [8, 8, 8, 8],
-              filename: outFile,
-              image: { type: 'jpeg', quality: 0.96 },
-              html2canvas: { scale: 2, useCORS: true },
-              jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-              pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-            })
-            .from(wrapper)
-            .save();
-
-          showToast('Saved A4 PDF: ' + outFile);
+          pdf.save(outFile);
+          showToast('Saved A4 PDF (' + totalPages + ' pages, ' + rows.length + ' cards).');
         } catch (err) {
           showToast('PDF failed: ' + (err.message || 'Try Print A4'), 'error');
         } finally {
+          if (host && host.parentNode) {
+            host.parentNode.removeChild(host);
+          }
           el.btnSaveA4Pdf.disabled = false;
           el.btnSaveA4Pdf.innerHTML = origLabel;
         }
