@@ -1899,15 +1899,15 @@
               : state.activeTab === 'extra' ? 'Extra / Portability'
                 : 'All Master Cards';
 
-          const ROWS_PER_PAGE = 28;
+          const ROWS_PER_PAGE = 38;
           const totalPages = Math.ceil(rows.length / ROWS_PER_PAGE);
 
-          // Render stage at (0,0) behind a lightweight progress overlay so html2canvas never captures blank
+          // Render stage at (0,0) sized to A4 width (794px) so each page fills full A4 height
           host = document.createElement('div');
           host.style.position = 'fixed';
           host.style.left = '0';
           host.style.top = '0';
-          host.style.width = '760px';
+          host.style.width = '794px';
           host.style.background = '#ffffff';
           host.style.color = '#000000';
           host.style.zIndex = '9998';
@@ -1926,8 +1926,10 @@
           const { jsPDF } = window.jspdf;
           const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
           const pageW = pdf.internal.pageSize.getWidth();
-          const margin = 8;
-          const imgW = pageW - margin * 2;
+          const pageH = pdf.internal.pageSize.getHeight();
+          const margin = 6;
+          const maxImgW = pageW - margin * 2;
+          const maxImgH = pageH - margin * 2;
 
           for (let pageIdx = 0; pageIdx < totalPages; pageIdx++) {
             el.btnSaveA4Pdf.textContent = 'PDF ' + (pageIdx + 1) + '/' + totalPages + '...';
@@ -1973,14 +1975,21 @@
               backgroundColor: '#ffffff',
               scrollX: 0,
               scrollY: 0,
-              windowWidth: 760
+              windowWidth: 794
             });
 
             const imgData = canvas.toDataURL('image/jpeg', 0.94);
-            const imgH = (canvas.height * imgW) / canvas.width;
+            let drawW = maxImgW;
+            let drawH = (canvas.height * drawW) / canvas.width;
+            if (drawH > maxImgH) {
+              const scale = maxImgH / drawH;
+              drawH = maxImgH;
+              drawW = drawW * scale;
+            }
+            const xOffset = margin + (maxImgW - drawW) / 2;
 
             if (pageIdx > 0) pdf.addPage();
-            pdf.addImage(imgData, 'JPEG', margin, margin, imgW, imgH);
+            pdf.addImage(imgData, 'JPEG', xOffset, margin, drawW, drawH);
           }
 
           const outFile = 'PDS_' + state.activeTab + '_' + (state.shopId || 'FPS') + '_' + state.month + '_' + state.year + '.pdf';
