@@ -132,6 +132,16 @@
         background: #efefef !important;
         font-weight: 700;
       }
+      table.print-table .col-father {
+        display: table-cell !important;
+      }
+      table.print-table .col-hidden,
+      table.print-table .col-father.col-hidden {
+        display: none !important;
+      }
+    }
+    .col-hidden {
+      display: none !important;
     }
   </style>
 </head>
@@ -424,6 +434,42 @@
               </select>
             </div>
           </div>
+
+          <!-- Print / Export Column Selector -->
+          <div class="p-2.5 border-2 border-[#181816] bg-[#faf9f5]">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+              <span class="font-mono-ui text-[11px] font-bold uppercase tracking-wider text-[#181816]">
+                &#9998; Select Columns for Print &amp; Excel:
+              </span>
+              <div class="flex items-center gap-1.5">
+                <label for="blankColTitleInput" class="font-mono-ui text-[10px] uppercase text-neutral-600">Empty Col Title:</label>
+                <input id="blankColTitleInput" type="text" value="Remarks" maxlength="20"
+                  class="border border-[#181816] bg-white px-1.5 py-0.5 font-mono-ui text-[11px] w-24 outline-none" />
+              </div>
+            </div>
+            <div class="flex flex-wrap gap-x-3.5 gap-y-1.5 font-mono-ui text-xs">
+              <label class="inline-flex items-center gap-1.5 cursor-pointer select-none">
+                <input type="checkbox" class="col-toggle accent-[#181816]" data-col="father" checked />
+                <span>Father/Husband</span>
+              </label>
+              <label class="inline-flex items-center gap-1.5 cursor-pointer select-none">
+                <input type="checkbox" class="col-toggle accent-[#181816]" data-col="type" checked />
+                <span>Type (PHH/AAY)</span>
+              </label>
+              <label class="inline-flex items-center gap-1.5 cursor-pointer select-none">
+                <input type="checkbox" class="col-toggle accent-[#181816]" data-col="units" checked />
+                <span>Units</span>
+              </label>
+              <label class="inline-flex items-center gap-1.5 cursor-pointer select-none">
+                <input type="checkbox" class="col-toggle accent-[#181816]" data-col="status" checked />
+                <span>Status (Pending/Done)</span>
+              </label>
+              <label class="inline-flex items-center gap-1.5 cursor-pointer select-none font-bold text-[#1b5e20]">
+                <input type="checkbox" class="col-toggle accent-[#166534]" data-col="blank" checked />
+                <span>+ Empty Write Column</span>
+              </label>
+            </div>
+          </div>
         </div>
 
         <!-- Responsive Table -->
@@ -434,10 +480,11 @@
                 <th class="py-2 px-2 border border-[#181816] w-10">#</th>
                 <th class="py-2 px-2 border border-[#181816]">Ration Card No</th>
                 <th class="py-2 px-2 border border-[#181816]">Card Holder</th>
-                <th class="py-2 px-2 border border-[#181816] hidden sm:table-cell">Father / Husband</th>
-                <th class="py-2 px-2 border border-[#181816] text-center">Type</th>
-                <th class="py-2 px-2 border border-[#181816] text-center">Units</th>
-                <th class="py-2 px-2 border border-[#181816] text-center">Status</th>
+                <th class="py-2 px-2 border border-[#181816] hidden sm:table-cell col-father">Father / Husband</th>
+                <th class="py-2 px-2 border border-[#181816] text-center col-type">Type</th>
+                <th class="py-2 px-2 border border-[#181816] text-center col-units">Units</th>
+                <th class="py-2 px-2 border border-[#181816] text-center col-status">Status</th>
+                <th id="thBlankCol" class="py-2 px-2 border border-[#181816] text-center col-blank min-w-[90px]">Remarks</th>
               </tr>
             </thead>
             <tbody id="resultsTbody" class="divide-y divide-neutral-200">
@@ -528,6 +575,8 @@
         searchQuery: '',
         typeFilter: 'ALL',
         sortBy: 'sr',
+        visibleCols: { father: true, type: true, units: true, status: true, blank: true },
+        blankColTitle: 'Remarks',
         shopId: '20080837',
         month: 'November',
         year: '2026',
@@ -581,6 +630,9 @@
         searchInput: document.getElementById('searchInput'),
         typeFilter: document.getElementById('typeFilter'),
         sortSelect: document.getElementById('sortSelect'),
+        blankColTitleInput: document.getElementById('blankColTitleInput'),
+        thBlankCol: document.getElementById('thBlankCol'),
+        colToggles: Array.from(document.querySelectorAll('.col-toggle')),
         resultsTbody: document.getElementById('resultsTbody'),
         tableEmptyState: document.getElementById('tableEmptyState'),
         showingCountText: document.getElementById('showingCountText'),
@@ -1255,15 +1307,31 @@
             '<td class="py-2 px-2 font-medium">' + escapeHtml(item.name) +
               (item.txDate ? '<div class="font-mono-ui text-[10px] text-neutral-500">' + escapeHtml(item.txDate) + '</div>' : '') +
             '</td>' +
-            '<td class="py-2 px-2 text-neutral-600 hidden sm:table-cell">' + escapeHtml(item.fatherName) + '</td>' +
-            '<td class="py-2 px-2 text-center"><span class="inline-block font-mono-ui text-[11px] font-bold px-1.5 py-0.5 border ' + typeClass + '">' + escapeHtml(item.cardType) + '</span></td>' +
-            '<td class="py-2 px-2 text-center font-mono-ui">' + (item.units > 0 ? item.units : '—') + '</td>' +
-            '<td class="py-2 px-2 text-center">' + badgeHtml + '</td>';
+            '<td class="py-2 px-2 text-neutral-600 hidden sm:table-cell col-father">' + escapeHtml(item.fatherName) + '</td>' +
+            '<td class="py-2 px-2 text-center col-type"><span class="inline-block font-mono-ui text-[11px] font-bold px-1.5 py-0.5 border ' + typeClass + '">' + escapeHtml(item.cardType) + '</span></td>' +
+            '<td class="py-2 px-2 text-center font-mono-ui col-units">' + (item.units > 0 ? item.units : '—') + '</td>' +
+            '<td class="py-2 px-2 text-center col-status">' + badgeHtml + '</td>' +
+            '<td class="py-2 px-2 border-l border-neutral-300 col-blank min-w-[90px]">&nbsp;</td>';
 
           frag.appendChild(tr);
         });
 
         el.resultsTbody.appendChild(frag);
+        applyColumnVisibility();
+      }
+
+      function applyColumnVisibility() {
+        el.thBlankCol.textContent = state.blankColTitle || 'Remarks';
+        ['father', 'type', 'units', 'status', 'blank'].forEach(function (colKey) {
+          const show = !!state.visibleCols[colKey];
+          document.querySelectorAll('.col-' + colKey).forEach(function (cell) {
+            if (show) {
+              cell.classList.remove('col-hidden');
+            } else {
+              cell.classList.add('col-hidden');
+            }
+          });
+        });
       }
 
       function getFilteredRows() {
@@ -1619,19 +1687,33 @@
           return;
         }
 
-        function mapSheet(arr) {
-          return arr.map(function (r, idx) {
-            return {
+        function buildSheet(arr) {
+          const blankHeader = state.blankColTitle || 'Remarks';
+          const mapped = arr.map(function (r, idx) {
+            const row = {
               'Sr No': idx + 1,
-              'Ration Card No': r.cardNo,
-              'Card Holder Name': r.name,
-              'Father / Husband Name': r.fatherName,
-              'Card Type': r.cardType,
-              'Units': r.units || '',
-              'Status': r.status.toUpperCase(),
-              'Transaction Date': r.txDate || ''
+              'Ration Card No': String(r.cardNo || ''),
+              'Card Holder Name': r.name || ''
             };
+            if (state.visibleCols.father) row['Father / Husband'] = r.fatherName || '';
+            if (state.visibleCols.type) row['Type'] = r.cardType || '';
+            if (state.visibleCols.units) row['Units'] = r.units || '';
+            if (state.visibleCols.status) row['Status'] = r.status.toUpperCase();
+            if (state.visibleCols.blank) row[blankHeader] = '';
+            return row;
           });
+          const ws = window.XLSX.utils.json_to_sheet(mapped);
+          ws['!cols'] = [
+            { wch: 6 }, { wch: 16 }, { wch: 24 },
+            ...(state.visibleCols.father ? [{ wch: 22 }] : []),
+            ...(state.visibleCols.type ? [{ wch: 8 }] : []),
+            ...(state.visibleCols.units ? [{ wch: 8 }] : []),
+            ...(state.visibleCols.status ? [{ wch: 13 }] : []),
+            ...(state.visibleCols.blank ? [{ wch: 18 }] : [])
+          ];
+          ws['!pageSetup'] = { paperSize: 9, orientation: 'portrait', fitToWidth: 1, fitToHeight: 0 };
+          ws['!margins'] = { left: 0.4, right: 0.4, top: 0.5, bottom: 0.5, header: 0.2, footer: 0.2 };
+          return ws;
         }
 
         const wb = window.XLSX.utils.book_new();
@@ -1644,11 +1726,14 @@
           { Metric: 'Pending', Value: state.comparison.pending.length },
           { Metric: 'Extra / Portability', Value: state.comparison.extra.length }
         ];
+        const wsSummary = window.XLSX.utils.json_to_sheet(summaryRows);
+        wsSummary['!cols'] = [{ wch: 24 }, { wch: 32 }];
+        wsSummary['!pageSetup'] = { paperSize: 9, orientation: 'portrait', fitToWidth: 1, fitToHeight: 1 };
 
-        window.XLSX.utils.book_append_sheet(wb, window.XLSX.utils.json_to_sheet(summaryRows), 'Summary');
-        window.XLSX.utils.book_append_sheet(wb, window.XLSX.utils.json_to_sheet(mapSheet(state.comparison.pending)), 'Pending_List');
-        window.XLSX.utils.book_append_sheet(wb, window.XLSX.utils.json_to_sheet(mapSheet(state.comparison.distributed)), 'Distributed_List');
-        window.XLSX.utils.book_append_sheet(wb, window.XLSX.utils.json_to_sheet(mapSheet(state.comparison.extra)), 'Extra_Portability');
+        window.XLSX.utils.book_append_sheet(wb, buildSheet(state.comparison.pending), 'Pending_List');
+        window.XLSX.utils.book_append_sheet(wb, buildSheet(state.comparison.distributed), 'Distributed_List');
+        window.XLSX.utils.book_append_sheet(wb, buildSheet(state.comparison.extra), 'Extra_Portability');
+        window.XLSX.utils.book_append_sheet(wb, wsSummary, 'Summary');
 
         const outName = 'PDS_Compare_' + (state.shopId || 'FPS') + '_' + state.month + '_' + state.year + '.xlsx';
         window.XLSX.writeFile(wb, outName);
@@ -1772,7 +1857,25 @@
       el.btnExportExcel.addEventListener('click', exportExcel);
       el.btnExportCsv.addEventListener('click', exportCsv);
       el.btnPrintA4.addEventListener('click', function () {
-        window.print();
+        applyColumnVisibility();
+        try {
+          window.print();
+        } catch (err) {
+          showToast('Use your browser menu (⋮ -> Share -> Print) if print dialog is blocked.', 'warn');
+        }
+      });
+
+      el.colToggles.forEach(function (cb) {
+        cb.addEventListener('change', function () {
+          const key = cb.getAttribute('data-col');
+          state.visibleCols[key] = cb.checked;
+          applyColumnVisibility();
+        });
+      });
+
+      el.blankColTitleInput.addEventListener('input', function (e) {
+        state.blankColTitle = e.target.value.trim() || 'Remarks';
+        applyColumnVisibility();
       });
 
       function openSmartPdsPortal() {
